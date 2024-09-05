@@ -395,7 +395,7 @@ function attack(fightId,attacker,receiver){
 function tick(fightId) {
 	if (fights[fightId]) {
 		[fights[fightId].player1,fights[fightId].player2].forEach((player) => {
-			/* if (fights[fightId][player].hp <= 0) {
+			if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
 					fights[fightId][player].hp = 1;
 					fights[fightId][player].extraLife = false;
@@ -403,7 +403,7 @@ function tick(fightId) {
 				} else {
 					endFight(fightId,player);
 				}
-			}; */
+			};
 			if (fights[fightId].config.coldDay) {
 				fights[fightId][player].hp -= 5 - fights[fightId][player].coldProtection;
 				server.publish(fightId,"HitSplat=5~images/snowflake_sigil.png~cyan~rgba(255,0,0,0.4)~blue~0" + player)

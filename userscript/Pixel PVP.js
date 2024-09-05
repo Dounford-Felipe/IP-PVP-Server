@@ -1157,7 +1157,7 @@ const manaCost = {
 		
 			setTimeout(
 				function(){
-					delete this.fightHitplat[source][random_key];
+					delete IdlePixelPlus.plugins.pvp.fightHitplat[source][random_key];
 				}
 			,1000)
 		}
