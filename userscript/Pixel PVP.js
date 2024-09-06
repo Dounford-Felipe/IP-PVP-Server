@@ -450,50 +450,155 @@ const manaCost = {
 			</div>
 			<br>
 			<div class="dounfordPVPGrid">
-				<div id="dounfordPVPPets" style="background-color: aliceblue;">PETS</div>
-				<div id="dounfordPVPLogs" style="background-color: aqua;grid-row: 1 / 3;grid-column: 2;">LOGS</div>
+				<div id="dounfordPVPPets" style="background-color: darkturquoise;color: black;">
+					<h3>PETS</h3>
+					<div id="dounfordPVPPETS" style="display: grid;grid-template-columns: 1fr 1fr 1fr;gap: 10px;">
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Start with less hp, but gets more when reviving">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/Bamboo.png">
+							Bamboo
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spells may fail or be more powerful">
+							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlackCat.png" style="height: 50px;">
+							Black Cat
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Can be eaten or befriended for a new spell">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlackChicken.png">
+							Black Chicken
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Shane would be pround of you, Egg Spell unlocked">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlueChicken.png">
+							Blue Chicken
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Attacks may fail or hit higher">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlueMushroom.png">
+							Blue Mushroom
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Isn't it the cutest thing in the world?">
+							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/CalicoCat.png" style="height: 50px;">
+							Calico Cat
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Empower all your attacks with fire">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/FireSpirit.png">
+							Fire Spirit
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Have you reached perfection? Anyways, Golden Egg Spell unlocked">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/GoldenChicken.png">
+							Golden Chicken
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Do I have to explain?">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/GreenMushroom.png">
+							Green Mushroom
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase your speed">
+							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/horse.png" style="width:50px">
+							Horse
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may dodge some attacks">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/PurpleJay.png">
+							Purple Jay
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spirit Blast Spell unlocked">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/Spirit.png">
+							Spirit
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Did you know that at first she would be the trainer in IP Pets script? Since it was scrapped your spells will be too">
+							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteBunny.png" style="height: 50px;">
+							White Bunny
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase almost all of your stats">
+							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteCat.png" style="height: 50px;">
+							White Cat
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Egg Spell Unlocked">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteChicken.png">
+							White Chicken
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may hit yourself">
+							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhyChicken.png">
+							Why Chicken
+						</div>
+					</div>
+				</div>
+				<div id="dounfordPVPLogs" style="background-color: aqua;grid-row: 1 / 3;grid-column: 2;padding: 10px;overflow-y: scroll;">
+					<table style="font-size: 1.5rem;" class="market-history-table">
+						<thead>
+							<tr>
+								<th>Opponent</th>
+								<th>Outcome</th>
+								<th>Date</th>
+							</tr>
+						</thead>
+						<tbody id="dPVPLogsBody">
+							<tr>
+								<td style="text-transform: capitalize;">dounford1</td>
+								<td>Winner</td>
+								<td>05/09/2024</td>
+							</tr>
+							<tr>
+								<td style="text-transform: capitalize;">dounford1</td>
+								<td>Looser</td>
+								<td>05/09/2024</td>
+							</tr>
+							<tr>
+								<td style="text-transform: capitalize;">dounford1</td>
+								<td>Aborted</td>
+								<td>05/09/2024</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 				<div style="background-color: teal;padding: 10px;">
 					<h3>TITLES</h3>
 					<div id="dounfordPVPTitles" style="display: grid;grid-template-columns: 1fr 1fr 1fr;gap: 10px;">
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="What kind of person creates a title only for himself? Oh, that is right I did it">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/tree_sigil_chat.png">
-							 DOUNFORD</div>
+							DOUNFORD
+						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Thank you for helping the game, you deserve a title for it">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/donor_coins.png">
-							 Contributor</div>
+							Contributor
+						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I hope you enjoyed the grind">
 							<img class="w50" style="margin-top:-3px;" src="https://cdn.idle-pixel.com/images/trophy_icon.png">
-							 Completionist</div>
+							<span>Completionist</span>
+						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Agro is that you?">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/magic.png">
-							 Wizard</div>
+							Wizard
+						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="This will be available in A VERY SPECIAL MOMENT">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/blood_diamond.png">
-							 A VERY SPECIAL TITLE</div>
+							A VERY SPECIAL TITLE
+						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You defeated the boss">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/diamond.png">
-							 BOSS SLAYER
+							BOSS SLAYER
 						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You really ate your pet? Why!?">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/faradox_gaurdians_notes.png">
-							 MONSTER
+							MONSTER
 						</div>
 						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You need to start somewhere">
-							<img class="w50" src="">
+							<img class="w50" src="https://cdn.idle-pixel.com/images/chicken_icon.png">
 							Novice
-						</div><div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are getting better">
-							<img class="w50" src="">
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are getting better">
+							<img class="w50" src="https://cdn.idle-pixel.com/images/skeleton_sword.png">
 							Apprentice
-						</div><div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I'm sure you can defeat Smitty at this point">
-							<img class="w50" src="">
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I'm sure you can defeat Smitty at this point">
+							<img class="w50" src="https://cdn.idle-pixel.com/images/poison_stinger_dagger.png">
 							Expert
-						</div><div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I can't believe someone spend so much time playing with my script, thank you">
-							<img class="w50" src="">
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I can't believe someone spend so much time playing with my script, thank you">
+							<img class="w50" src="https://cdn.idle-pixel.com/images/gold_rapier.png">
 							Champion
-						</div><div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are one of the few who can be partner with the Lendary Golden Chicken">
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are one of the few who can be partner with the Lendary Golden Chicken">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/goldenChicken.png">
 							Legend
-						</div><div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You is the GOAT, nothing can stop you">
+						</div>
+						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You is the GOAT, nothing can stop you">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/dark_sword.png">
 							Immortal
 						</div>
@@ -574,7 +679,7 @@ const manaCost = {
 				</div>
 				<div>
 					<input type="radio" name="pvpArea" value="beach" id="pvpBeach">
-					<label for="pvpBeach" dounfordTooltip="x2 Trident damage and half speed">Beach</label>
+					<label for="pvpBeach" dounfordTooltip="x2 Trident damage">Beach</label>
 				</div>
 				<div>
 					<input type="radio" name="pvpRain" value="noRain" id="pvpNoRain" checked>
@@ -621,7 +726,7 @@ const manaCost = {
 					<span id="pvpFlag7" dounfordtooltip="x2 ice damage">Ice Weakness</span>
 					<span id="pvpFlag8">Fields</span>
 					<span id="pvpFlag9" dounfordtooltip="x2 Scythe damage">Haunted Mansion</span>
-					<span id="pvpFlag10" dounfordtooltip="x2 Trident damage and half speed">Beach</span>
+					<span id="pvpFlag10" dounfordtooltip="x2 Trident damage">Beach</span>
 					<span id="pvpFlag11" dounfordtooltip="Only Rain Amulet will cure">Rain</span>
 					<span id="pvpFlag12" dounfordtooltip="Heavy damage if you don't use invisibility spell">Mud Rain</span>
 				</div>
@@ -1075,6 +1180,10 @@ const manaCost = {
 			document.getElementById("dpvp-fighting-enemy-label").innerText = this.currentEnemy
 			document.getElementById("dpvp-fighting-enemy-title").innerText = this.fight[this.currentEnemy].title
 			document.getElementById("dpvpSpells").style.display = this.fight.config.noSpells ? "none" : "";
+			document.getElementById("dpvp-fighting-spell-label-heal").innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
+			document.getElementById("dpvp-fighting-spell-label-fire").innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
+			document.getElementById("dpvp-fighting-spell-label-reflect").innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
+			document.getElementById("dpvp-fighting-spell-label-invisibility").innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
 			this.updateStatsBars();
 			this.fight.tick = setInterval(function() {
 				IdlePixelPlus.plugins.pvp.tick();
@@ -1103,28 +1212,30 @@ const manaCost = {
 		}
 
 		spellCooldown(spellName, time, id) {
-			this.fight[username].cooldowns[spellName] = time;
-			if (time > 0) {
-				document.getElementById(id).innerText = time;
-				setTimeout(function() {IdlePixelPlus.plugins.pvp.spellCooldown(spellName, time - 1, id)}, 1000);
-			} else {
-				if (this.fight[username].mana < manaCost[spellName]) {
-					document.getElementById(id).innerText = 'NO MANA';
-					return 
-				}
-				switch (spellName) {
-					case "heal":
-						document.getElementById(id).innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
-						break;
-					case "fire":
-						document.getElementById(id).innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
-						break;
-					case "reflect":
-						document.getElementById(id).innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
-						break;
-					case "invisibility":
-						document.getElementById(id).innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
-						break;
+			if(this.fight[username]) {
+				this.fight[username].cooldowns[spellName] = time;
+				if (time > 0) {
+					document.getElementById(id).innerText = time;
+					setTimeout(function() {IdlePixelPlus.plugins.pvp.spellCooldown(spellName, time - 1, id)}, 1000);
+				} else {
+					if (this.fight[username].mana < manaCost[spellName]) {
+						document.getElementById(id).innerText = 'NO MANA';
+						return 
+					}
+					switch (spellName) {
+						case "heal":
+							document.getElementById(id).innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
+							break;
+						case "fire":
+							document.getElementById(id).innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
+							break;
+						case "reflect":
+							document.getElementById(id).innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
+							break;
+						case "invisibility":
+							document.getElementById(id).innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
+							break;
+					}
 				}
 			}
 		}
