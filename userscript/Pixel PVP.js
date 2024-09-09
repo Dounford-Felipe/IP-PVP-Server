@@ -19,9 +19,11 @@ let boughtPets = [];
 let coins = 0;
 let titles = [];
 let wins = 0;
-let matches = 0;
 let currentTitle = "";
 let currentPet = "none";
+let fightHistory = [];
+let enemyAvatar = "";
+let heroAvatar = "";
 let pets = {
 	bamboo: {
 		name: "Bamboo",
@@ -163,10 +165,21 @@ const manaCost = {
 				this.blockedUsers = JSON.parse(users)
 				this.blockedUsers.forEach((user) => {this.blockPlayer(user)})
 			}
+			const petStorage = localStorage.getItem("dPVP-" + username + "pets");
+			if (petStorage) {
+				pets = JSON.parse(petStorage);
+			}
 			this.getData().then(() => {				
 				this.shopInit();
 			})
-			const newTitle = localStorage.getItem("dPVP-currentTitle") || "";
+			const historyString = localStorage.getItem("dPVP-" + username + "fightHistory");
+			if (historyString) {
+				fightHistory = JSON.parse(historyString);
+				fightHistory.forEach((fight) => {
+					IdlePixelPlus.plugins.pvp.addFightHistory(fight);
+				});
+			}
+			const newTitle = localStorage.getItem("dPVP-" + username + "currentTitle") || "";
 			this.changeTitle(newTitle);
 			IdlePixelPlus.plugins.pvp.changeaddFriendFunction()
 			this.addUI();
@@ -176,7 +189,6 @@ const manaCost = {
 			this.blockAll = this.getConfig("blockFights");
 		}
  
-
 		onCustomMessageReceived(player, content, callbackId) {
 			console.log(content)
             if(content.startsWith("friendRequest")) {
@@ -238,6 +250,26 @@ const manaCost = {
 				coins = Json.coins;
 				titles = Json.titles.split(",");
 				wins = Json.wins;
+
+				boughtPets.forEach((pet) => {
+					document.getElementById("dpvp" + pet).style.display = "";
+				})
+				titles.forEach((title) => {
+					document.getElementById("dpvp" + title).style.display = "";
+				})
+			} catch (error) {
+				console.error(error.message);
+			}
+
+			try {
+				const response = await fetch("https://idle-pixel-pvp.vercel.app/petInfo?name=" + username);
+				const Json = await response.json();
+				if (Json == "none") return;
+
+				for (let pet in pets) {
+					pets[pet].xp = Json[pet].xp;
+					pets[pet].level = Json[pet].level < 10 ? 1 : Json[pet].level < 25 ? 2 : 3;
+				}
 			} catch (error) {
 				console.error(error.message);
 			}
@@ -253,6 +285,11 @@ const manaCost = {
 			}).then((response) => {
 				return response.json();
 			})
+		}
+
+		equipPet() {
+			const pet = document.getElementById('pvpPetName').value;
+			currentPet = pet;
 		}
 
 		shopInit() {
@@ -453,67 +490,67 @@ const manaCost = {
 				<div id="dounfordPVPPets" style="background-color: darkturquoise;color: black;">
 					<h3>PETS</h3>
 					<div id="dounfordPVPPETS" style="display: grid;grid-template-columns: 1fr 1fr 1fr;gap: 10px;">
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Start with less hp, but gets more when reviving">
+						<div id="dpvpbamboo" onclick="IdlePixelPlus.plugins.pvp.openPetModal('bamboo')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Start with less hp, but gets more when reviving">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/Bamboo.png">
 							Bamboo
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spells may fail or be more powerful">
+						<div id="dpvpblackCat" onclick="IdlePixelPlus.plugins.pvp.openPetModal('blackCat')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spells may fail or be more powerful">
 							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlackCat.png" style="height: 50px;">
 							Black Cat
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Can be eaten or befriended for a new spell">
+						<div id="dpvpblackChicken" onclick="IdlePixelPlus.plugins.pvp.openPetModal('blackChicken')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Can be eaten or befriended for a new spell">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlackChicken.png">
 							Black Chicken
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Shane would be pround of you, Egg Spell unlocked">
+						<div id="dpvpblueChicken" onclick="IdlePixelPlus.plugins.pvp.openPetModal('blueChicken')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Shane would be pround of you, Egg Spell unlocked">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlueChicken.png">
 							Blue Chicken
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Attacks may fail or hit higher">
+						<div id="dpvpblueMushroom" onclick="IdlePixelPlus.plugins.pvp.openPetModal('blueMushroom')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Attacks may fail or hit higher">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/BlueMushroom.png">
 							Blue Mushroom
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Isn't it the cutest thing in the world?">
+						<div id="dpvpcalicoCat" onclick="IdlePixelPlus.plugins.pvp.openPetModal('calicoCat')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Isn't it the cutest thing in the world?">
 							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/CalicoCat.png" style="height: 50px;">
 							Calico Cat
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Empower all your attacks with fire">
+						<div id="dpvpfireSpirit" onclick="IdlePixelPlus.plugins.pvp.openPetModal('fireSpirit')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Empower all your attacks with fire">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/FireSpirit.png">
 							Fire Spirit
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Have you reached perfection? Anyways, Golden Egg Spell unlocked">
+						<div id="dpvpgoldenChicken" onclick="IdlePixelPlus.plugins.pvp.openPetModal('goldenChicken')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Have you reached perfection? Anyways, Golden Egg Spell unlocked">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/GoldenChicken.png">
 							Golden Chicken
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Do I have to explain?">
+						<div id="dpvpgreenMushroom" onclick="IdlePixelPlus.plugins.pvp.openPetModal('greenMushroom')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Do I have to explain?">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/GreenMushroom.png">
 							Green Mushroom
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase your speed">
+						<div id="dpvphorse" onclick="IdlePixelPlus.plugins.pvp.openPetModal('horse')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase your speed">
 							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/horse.png" style="width:50px">
 							Horse
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may dodge some attacks">
+						<div id="dpvppurpleJay" onclick="IdlePixelPlus.plugins.pvp.openPetModal('purpleJay')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may dodge some attacks">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/PurpleJay.png">
 							Purple Jay
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spirit Blast Spell unlocked">
+						<div id="dpvpspirit" onclick="IdlePixelPlus.plugins.pvp.openPetModal('spirit')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Spirit Blast Spell unlocked">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/Spirit.png">
 							Spirit
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Did you know that at first she would be the trainer in IP Pets script? Since it was scrapped your spells will be too">
+						<div id="dpvpwhiteBunny" onclick="IdlePixelPlus.plugins.pvp.openPetModal('whiteBunny')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Did you know that at first she would be the trainer in IP Pets script? Since it was scrapped your spells will be too">
 							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteBunny.png" style="height: 50px;">
 							White Bunny
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase almost all of your stats">
+						<div id="dpvpwhiteCat" onclick="IdlePixelPlus.plugins.pvp.openPetModal('whiteCat')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Increase almost all of your stats">
 							<img src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteCat.png" style="height: 50px;">
 							White Cat
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Egg Spell Unlocked">
+						<div id="dpvpwhiteChicken" onclick="IdlePixelPlus.plugins.pvp.openPetModal('whiteChicken')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Egg Spell Unlocked">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhiteChicken.png">
 							White Chicken
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may hit yourself">
+						<div id="dpvpwhyChicken" onclick="IdlePixelPlus.plugins.pvp.openPetModal('whyChicken')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You may hit yourself">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/WhyChicken.png">
 							Why Chicken
 						</div>
@@ -528,77 +565,61 @@ const manaCost = {
 								<th>Date</th>
 							</tr>
 						</thead>
-						<tbody id="dPVPLogsBody">
-							<tr>
-								<td style="text-transform: capitalize;">dounford1</td>
-								<td>Winner</td>
-								<td>05/09/2024</td>
-							</tr>
-							<tr>
-								<td style="text-transform: capitalize;">dounford1</td>
-								<td>Looser</td>
-								<td>05/09/2024</td>
-							</tr>
-							<tr>
-								<td style="text-transform: capitalize;">dounford1</td>
-								<td>Aborted</td>
-								<td>05/09/2024</td>
-							</tr>
-						</tbody>
+						<tbody id="dPVPLogsBody" style="text-transform: capitalize;"></tbody>
 					</table>
 				</div>
 				<div style="background-color: teal;padding: 10px;">
 					<h3>TITLES</h3>
 					<div id="dounfordPVPTitles" style="display: grid;grid-template-columns: 1fr 1fr 1fr;gap: 10px;">
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="What kind of person creates a title only for himself? Oh, that is right I did it">
+						<div id="dpvpDOUNFORD" onclick="IdlePixelPlus.plugins.pvp.changeTitle('DOUNFORD')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="What kind of person creates a title only for himself? Oh, that is right I did it">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/tree_sigil_chat.png">
 							DOUNFORD
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Thank you for helping the game, you deserve a title for it">
+						<div id="dpvpcontributor" onclick="IdlePixelPlus.plugins.pvp.changeTitle('contributor')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Thank you for helping the game, you deserve a title for it">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/donor_coins.png">
 							Contributor
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I hope you enjoyed the grind">
+						<div id="dpvpcompletionist" onclick="IdlePixelPlus.plugins.pvp.changeTitle('completionist')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="I hope you enjoyed the grind">
 							<img class="w50" style="margin-top:-3px;" src="https://cdn.idle-pixel.com/images/trophy_icon.png">
 							<span>Completionist</span>
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="Agro is that you?">
+						<div id="dpvpwizard" onclick="IdlePixelPlus.plugins.pvp.changeTitle('wizard')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="Agro is that you?">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/magic.png">
 							Wizard
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="This will be available in A VERY SPECIAL MOMENT">
+						<div id="dpvpA_VERY_SPECIAL_TITLE" onclick="IdlePixelPlus.plugins.pvp.changeTitle('A_VERY_SPECIAL_TITLE')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="This will be available in A VERY SPECIAL MOMENT">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/blood_diamond.png">
 							A VERY SPECIAL TITLE
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You defeated the boss">
+						<div id="dpvpBOSS_SLAYER" onclick="IdlePixelPlus.plugins.pvp.changeTitle('BOSS_SLAYER')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You defeated the boss">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/diamond.png">
 							BOSS SLAYER
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You really ate your pet? Why!?">
+						<div id="dpvpMONSTER" onclick="IdlePixelPlus.plugins.pvp.changeTitle('MONSTER')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You really ate your pet? Why!?">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/faradox_gaurdians_notes.png">
 							MONSTER
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You need to start somewhere">
+						<div id="dpvpnovice" onclick="IdlePixelPlus.plugins.pvp.changeTitle('novice')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You need to start somewhere">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/chicken_icon.png">
 							Novice
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are getting better">
+						<div id="dpvpapprentice" onclick="IdlePixelPlus.plugins.pvp.changeTitle('apprentice')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are getting better">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/skeleton_sword.png">
 							Apprentice
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I'm sure you can defeat Smitty at this point">
+						<div id="dpvpexpert" onclick="IdlePixelPlus.plugins.pvp.changeTitle('expert')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="I'm sure you can defeat Smitty at this point">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/poison_stinger_dagger.png">
 							Expert
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="I can't believe someone spend so much time playing with my script, thank you">
+						<div id="dpvpchampion" onclick="IdlePixelPlus.plugins.pvp.changeTitle('champion')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="I can't believe someone spend so much time playing with my script, thank you">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/gold_rapier.png">
 							Champion
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are one of the few who can be partner with the Lendary Golden Chicken">
+						<div id="dpvplegend" onclick="IdlePixelPlus.plugins.pvp.changeTitle('legend')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You are one of the few who can be partner with the Lendary Golden Chicken">
 							<img class="w50" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/goldenChicken.png">
 							Legend
 						</div>
-						<div class="dounfordPVPTitles dounfordHover" dounfordtooltip="You is the GOAT, nothing can stop you">
+						<div id="dpvpimmortal" onclick="IdlePixelPlus.plugins.pvp.changeTitle('immortal')" style="display: none" class="dounfordPVPTitles dounfordHover" dounfordtooltip="You is the GOAT, nothing can stop you">
 							<img class="w50" src="https://cdn.idle-pixel.com/images/dark_sword.png">
 							Immortal
 						</div>
@@ -623,10 +644,13 @@ const manaCost = {
 			document.getElementById('menu-bar-buttons').insertAdjacentHTML('beforeend', pvpMenuBtn);
 
 			//Pet Modal
-			this.newModal("dounfordPet","PET","","Equip","Close",
+			this.newModal("dounfordPet","PET","IdlePixelPlus.plugins.pvp.equipPet()","Equip","Close",
 				`<h4 id="pvpPetDisplayName">PET NAME</h4>
 				<img id="pvpPetImage" src="" style="height:100px">
 				<br>
+				<br>
+				<input type="text" id="pvpPetNewName" style="margin-right: 0.5rem;border-radius: 0.4rem;" placeholder="New Name">
+				<button onclick="IdlePixelPlus.plugins.pvp.renamePet()">Rename</button>
 				<br>
 				<b>Level </b><span id="dounfordPetLevel">3</span>
 				<br>
@@ -735,6 +759,12 @@ const manaCost = {
 				"receivePVPModal", "PVP Request", "IdlePixelPlus.plugins.pvp.acceptPVPRequest()", "Accept PVP Request", "Ignore", receivePVPBody, ["receiveFightEnemy"]
 			)
 
+			//Result Modal
+			this.newModal(
+				"dpvpResult", "PVP Result", "", "disabled", "", "<h4 id='dpvpResultText'>You draw against <b>Player</b>!</h4>",[]
+			)
+
+			//Combat Panel
 			IdlePixelPlus.panels.dounfordPVPCombat = {id:'dounfordPVPCombat',title:'',content:''}
 			const dpvpTab = `<div id="panel-dounfordPVPCombat" style="display: none;">
 				<button onclick="switch_panels('panel-dounfordPVP')">BACK</button>
@@ -783,9 +813,12 @@ const manaCost = {
 				</tr>
 				<tr>
 					<td style="vertical-align:top;" class="fight-right-border">
-						<div class="fighting-hero-stats-area hover shadow" style="border-right:none;text-align: center;">
-							<h3 id="dpvp-fighting-hero-label" style="text-transform: capitalize;">You</h3>
-							<span id="dpvp-fighting-hero-title"></span>
+						<div class="fighting-hero-stats-area hover shadow" style="border-right:none;text-align: center;display: flex;align-items: center;">
+							<img id="dpvpHeroAvatar" class="w50" style="display: none;" src="">
+							<div style="margin: auto;">
+								<h3 id="dpvp-fighting-hero-label" style="text-transform: capitalize;">You</h3>
+								<span id="dpvp-fighting-hero-title"></span>
+							</div>
 						</div>
 			
 						<div class="td-combat-bottom-panel shadow">
@@ -855,9 +888,12 @@ const manaCost = {
 						</canvas>
 					</td>
 					<td style="vertical-align:top;" class="fight-left-border">
-						<div class="fighting-monster-stats-area hover shadow" style="text-align: center;">
-							<h3 id="dpvp-fighting-enemy-label" style="text-transform: capitalize;">Enemy</h3>
-							<span id="dpvp-fighting-enemy-title"></span>
+						<div class="fighting-monster-stats-area hover shadow" style="text-align: center;display: flex;align-items: center;">
+							<img id="dpvpEnemyAvatar" class="w50" style="display: none;" src="">
+							<div style="margin: auto;">
+								<h3 id="dpvp-fighting-enemy-label" style="text-transform: capitalize;">Enemy</h3>
+								<span id="dpvp-fighting-enemy-title"></span>
+							</div>
 						</div>
 			
 						<div class="td-combat-bottom-panel shadow">
@@ -955,12 +991,12 @@ const manaCost = {
 			document.getElementById('dounfordPet').showModal()
 		}
 
-		changePetName() {
+		renamePet() {
 			const pet = document.getElementById('pvpPetName').value
 			const newName = document.getElementById('pvpPetNewName').value
 			pets[pet].name = newName
 			document.getElementById('pvpPetDisplayName').innerText = newName
-			localStorage.setItem("dPVP-pets", JSON.stringify(pets))
+			localStorage.setItem("dPVP-" + username + "pets", JSON.stringify(pets))
 		}
 
 		changePet() {
@@ -971,11 +1007,30 @@ const manaCost = {
 			localStorage.setItem("dPVP-currentPet", currentPet)
 		}
 
+		addFightHistory(fight) {
+			let fightTr = document.createElement("tr");
+			fightTr.innerHTML = `<td style="text-transform: capitalize;">${fight[0]}</td>
+				<td>${fight[1]}</td>
+				<td>${fight[2]}</td>`;
+			document.getElementById("dPVPLogsBody").prepend(fightTr);
+		}
+
+		fightResult(result) {
+			let resultText = document.getElementById("dPVPResultText");
+			if (result == "Winner") {
+				resultText.innerHTML = `You won against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, you did great!`
+			} else {
+				resultText.innerHTML = `You lost against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, better luck next time!`
+			}
+			document.getElementById("dPVPResult").showModal();
+		}
+
 		changeTitle(title) {
 			if (titles.includes(title)) {
 				currentTitle = title;
+				Animations.scrollText("none", "white", "Title Changed");
+				localStorage.setItem("dPVP-" + username + "currentTitle", currentTitle)
 			}
-			localStorage.setItem("dPVP-currentTitle", currentTitle)
 		}
 
 		changeaddFriendFunction() {
@@ -1161,11 +1216,12 @@ const manaCost = {
 				case "RefreshEnemy":
 					this.refreshEnemy(JSON.parse(value));
 					break;
-				case "Win":
-					console.log("You won");
-					break;
-				case "Lose":
-					console.log("You lost");
+				case "FightResult":
+					let result = [this.currentEnemy,value,get_utc_time()]
+					fightHistory.push(result);
+					localStorage.setItem("dPVP-" + username + "fightHistory", JSON.stringify(fightHistory));
+					this.addFightHistory(result);
+					this.fightResult(value);
 					break;
 				default:
 					console.log(key, value);
