@@ -42,7 +42,7 @@ const server = Bun.serve({
 	}
 })
 
-function handleMessage(ws, message) {
+async function handleMessage(ws, message) {
 	let key;
 	let value;
 	let value_array;
@@ -61,6 +61,14 @@ function handleMessage(ws, message) {
 			const channelId = [user, enemy].sort().join('-'); 
 
 			if(fighters[user]) {ws.close(); return;}
+
+			const ban = await import('./ban.json');
+
+			if (ban.users.includes(user)) {
+				ws.close();
+				if(fights[channelId]) {fighters[enemy].ws.close();};
+				return;
+			}
 
 			fighters[user] = {
 				channel:channelId,
@@ -82,8 +90,16 @@ function handleMessage(ws, message) {
 						username: user,
 						enemyUsername: enemy,
 						coldProtection: 0,
-						extraLife: true,
-						freeSpell: false,
+						bonusSpeed: 0,
+						bonusAccuracy: 0,
+						bonusDamage: 0,
+						bonusDefence: 0,
+						dodgeChance: 0,
+						spellFail: 0,
+						attackFail: 0,
+						burnEffect: 0,
+						spellReduction: 0,
+						extraLife: 1,
 						isInvisible: false,
 						isReflecting: false,
 						poisoned: false,
@@ -99,8 +115,16 @@ function handleMessage(ws, message) {
 						username: enemy,
 						enemyUsername: user,
 						coldProtection: 0,
-						extraLife: true,
-						freeSpell: false,
+						bonusSpeed: 0,
+						bonusAccuracy: 0,
+						bonusDamage: 0,
+						bonusDefence: 0,
+						dodgeChance: 0,
+						spellFail: 0,
+						attackFail: 0,
+						burnEffect: 0,
+						spellReduction: 0,
+						extraLife: 1,
 						isInvisible: false,
 						isReflecting: false,
 						poisoned: false,
@@ -131,6 +155,54 @@ function handleMessage(ws, message) {
 				const parsedValue = JSON.parse(value);
 				fights[ws.channelId][ws.username] = {...fights[ws.channelId][ws.username], ...parsedValue};
 				checkCold(ws.channelId,ws.username);
+				if (fights[ws.channelId].config.petAlly) {
+					const player = fights[ws.channelId][ws.username];
+					switch (player.pet) {
+						case "bamboo":
+							const newHP = player.petLevel == 3 ? 15 : player.petLevel == 2 ? 10 : 5;
+							player.hp -= newHP;
+							player.maxHp -= newHP;
+							break;
+						case "blackCat":
+							const fail = player.petLevel == 3 ? 0.5 : player.petLevel == 2 ? 0.25 : 0.15;
+							player.spellFail = fail;
+							break;
+						case "blueChicken":
+							const reduction = player.petLevel == 3 ? 0.2 : player.petLevel == 2 ? 0.15 : 0.1;
+							player.spellReduction += reduction;
+							break;
+						case "blueMushroom":
+							const attackFail = player.petLevel == 3 ? 0.5 : player.petLevel == 2 ? 0.25 : 0.15;
+							player.attackFail = attackFail;
+							break;
+						case "calicoCat":
+							const extraHP = player.petLevel == 3 ? 5 : 0
+							player.hp += extraHP;
+							player.maxHp += extraHP;
+							break;
+						case "fireSpirit":
+							player.burnEffect = player.petLevel
+							break;
+						case "greenMushroom":
+							player.extraLife += 1;
+							break;
+						case "horse":
+							const newSpeed = player.petLevel == 3 ? 1 : player.petLevel == 2 ? 0.5 : 0.25;
+							player.bonusSpeed += newSpeed;
+							break;
+						case "purpleJay":
+							const newDodge = player.petLevel == 3 ? 0.075 : player.petLevel == 2 ? 0.05 : 0.025;
+							player.dodgeChance += newDodge;
+							break;
+						case "whiteCat":
+							player.hp += 1;
+							player.maxHp += 1;
+							player.bonusDamage += player.petLevel == 2 ? 1 : 0;
+							player.bonusDefence += player.petLevel == 3 ? 1 : 0;
+							player.bonusAccuracy += player.petLevel == 3 ? 1 : 0;
+							break;
+					}
+				}
 				if(fights[ws.channelId][ws.enemyUsername].hp) {
 					startFight(ws.channelId,ws.username,ws.enemyUsername);
 				}
@@ -160,6 +232,12 @@ function updateStats(fightId) {
 	const p1mana = fights[fightId][p1].mana
 	const p2mana = fights[fightId][p2].mana
 	server.publish(fightId,"UpdateStats=" + JSON.stringify({[p1]:{hp:p1hp,mana:p1mana},[p2]:{hp:p2hp,mana:p2mana}}))
+}
+
+//
+function checkSuccess(value) {
+	const random = Math.random()
+	return random <= value
 }
 
 //Cooldown Spell function
@@ -209,6 +287,7 @@ function castSpell(fightId,player,receiver,spellName) {
 				case "heal":
 					if (fights[fightId][player].mana >= 2) {
 						fights[fightId][player].mana -= 2;
+						const heal = 3;
 						fights[fightId][player].hp += 3;
 						fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
 						spellCooldown(fightId,player,spellName,5)
@@ -405,8 +484,9 @@ function tick(fightId) {
 				}
 			};
 			if (fights[fightId].config.coldDay) {
-				fights[fightId][player].hp -= 5 - fights[fightId][player].coldProtection;
-				server.publish(fightId,"HitSplat=5~images/snowflake_sigil.png~cyan~rgba(255,0,0,0.4)~blue~0" + player)
+				const coldDamage = 5 - fights[fightId][player].coldProtection;
+				fights[fightId][player].hp -= coldDamage
+				server.publish(fightId,"HitSplat=" + coldDamage + "~images/snowflake_sigil.png~cyan~rgba(255,0,0,0.4)~blue~0" + player)
 			}
 			if (fights[fightId].isRaining) {
 				if (fights[fightId].config.mudRain && fights[fightId].time % 5 == 4) {
@@ -430,15 +510,21 @@ function tick(fightId) {
 	}
 }
 
-async function looting(winner) {
-	/* let user = await turso.execute('SELECT (coins, wins) FROM players WHERE name = ?', [winner])
-	if (user.rows.length > 0) {
-		await turso.execute('UPDATE players SET (coins, wins) = (?, ?) WHERE name = ?', [user.rows[0].coins + 1, user.rows[0].wins + 1, winner]);
-	} else {
-		await turso.execute('INSERT INTO players (name, coins, pets, wins, titles) VALUES (?, ?, ?, ?, ?)', [winner, 1, '', 1, '']);
-	} */
-	fighters[winner].ws.send('Win');
-	//websocket to update coins
+async function looting(fightId, winner) {
+	try {
+		fighters[winner].ws.send('FightResult=Winner');
+		//websocket to update coins
+		await turso.execute('UPDATE players SET coins = coins + 1 WHERE name = ?', [winner]);
+		await turso.execute('UPDATE players SET wins = wins + 1 WHERE name = ?', [winner]);
+
+		//Gives pet xp
+		const pet = fights[fightId].player1.pet
+		if (pet !== "none") {
+			await turso.execute('UPDATE petsInfo SET ? = ? + 1	WHERE name = ?', [pet, pet, winner]);
+		}
+	} catch (error) {
+		console.log(error.message)
+	}
 }
 
 function endFight(fightId, player) {
@@ -447,8 +533,8 @@ function endFight(fightId, player) {
 	const looser = fights[fightId][player].username
 	const winner = fights[fightId][player].enemyUsername
 	
-	looting(winner)
-	fighters[looser].ws.send('Lose');
+	looting(fightId,winner)
+	fighters[looser].ws.send('FightResult=Loser');
 
 	fighters[winner].ws.close();
 	fighters[looser].ws.close();
