@@ -3,6 +3,13 @@ import { serve } from "bun";
 const ranged = ['wooden_bow','long_bow','haunted_bow','balista'];
 let fighters = {};
 let fights = {}
+const manaCost = {
+	heal: 2,
+	fire: 3,
+	reflect: 1,
+	invisibility: 2,
+	pet: 5
+};
 
 /* const turso = createClient({
 	url: process.env.TURSO_DATABASE_URL,
@@ -96,6 +103,7 @@ async function handleMessage(ws, message) {
 						bonusDefence: 0,
 						dodgeChance: 0,
 						spellFail: 0,
+						spellBonus: 0,
 						attackFail: 0,
 						burnEffect: 0,
 						spellReduction: 0,
@@ -121,6 +129,7 @@ async function handleMessage(ws, message) {
 						bonusDefence: 0,
 						dodgeChance: 0,
 						spellFail: 0,
+						spellBonus: 0,
 						attackFail: 0,
 						burnEffect: 0,
 						spellReduction: 0,
@@ -166,6 +175,7 @@ async function handleMessage(ws, message) {
 						case "blackCat":
 							const fail = player.petLevel == 3 ? 0.5 : player.petLevel == 2 ? 0.25 : 0.15;
 							player.spellFail = fail;
+							player.spellBonus = player.petLevel;
 							break;
 						case "blueChicken":
 							const reduction = player.petLevel == 3 ? 0.2 : player.petLevel == 2 ? 0.15 : 0.1;
@@ -236,6 +246,7 @@ function updateStats(fightId) {
 
 //
 function checkSuccess(value) {
+	if (value === 0) return false
 	const random = Math.random()
 	return random <= value
 }
@@ -283,56 +294,62 @@ function castSpell(fightId,player,receiver,spellName) {
 			return
 		}
 		if (fights[fightId][player].cooldowns[spellName] == 0) {
+			if (fights[fightId][player].mana < manaCost[spellName]) {return}
+			//It has 15, 25 or 50% chance to fail
+			if(checkSuccess(fights[fightId][player].spellFail)) {
+				fights[fightId][player].mana -= manaCost[spellName];
+				server.publish(fightId,"HitSplat=MISS~images/miss.png~red~rgba(255,0,0,0.4)~blue~" + receiver);
+				return
+			}
 			switch (spellName) {
 				case "heal":
-					if (fights[fightId][player].mana >= 2) {
-						fights[fightId][player].mana -= 2;
-						const heal = 3;
-						fights[fightId][player].hp += 3;
-						fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
-						spellCooldown(fightId,player,spellName,5)
-						updateStats(fightId)
-						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + 5 + "~" + "dpvp-fighting-spell-label-heal")
-						server.publish(fightId,"HitSplat=3~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
-					}
+					fights[fightId][player].mana -= 2;
+					const healAmount = 3 + fights[fightId][player].spellBonus;
+					fights[fightId][player].hp += healAmount;
+					fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
+					const healCooldown = 5 - (5 * fights[fightId][player].spellReduction);
+					spellCooldown(fightId,player,spellName,healCooldown)
+					updateStats(fightId)
+					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + healCooldown + "~" + "dpvp-fighting-spell-label-heal")
+					server.publish(fightId,"HitSplat=" + healAmount + "~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
 					break;
 				case "fire":
-					if (fights[fightId][player].mana >= 3) {
-						fights[fightId][player].mana -= 3;
-						let fireDamage = Math.floor(Math.random() * 6) + parseInt(fights[fightId][player].magicBonus);
-						if (fights[fightId].config.fireWeakness == true) {
-							fireDamage *= 2
-						};
-						fights[fightId][receiver].hp -= fireDamage
-						spellCooldown(fightId,player,spellName,5)
-						updateStats(fightId)
-						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + 5 + "~" + "dpvp-fighting-spell-label-fire")
-						server.publish(fightId,"HitSplat="+fireDamage+"~images/fire_icon.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
-					}
+					fights[fightId][player].mana -= 3;
+					const fireAmount = 6 + fights[fightId][player].spellBonus;
+					let fireDamage = Math.floor(Math.random() * fireAmount) + parseInt(fights[fightId][player].magicBonus);
+					if (fights[fightId].config.fireWeakness == true) {
+						fireDamage *= 2
+					};
+					fights[fightId][receiver].hp -= fireDamage
+					const fireCooldown = 5 - (5 * fights[fightId][player].spellReduction);
+					spellCooldown(fightId,player,spellName,fireCooldown)
+					updateStats(fightId)
+					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + fireCooldown + "~" + "dpvp-fighting-spell-label-fire")
+					server.publish(fightId,"HitSplat="+fireDamage+"~images/fire_icon.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
 					break;
 				case "reflect":
-					if (fights[fightId][player].mana >= 1 && fights[fightId][player].isReflecting == false) {
+					if (!fights[fightId][player].isReflecting) {
 						fights[fightId][player].mana -= 1;
 						fights[fightId][player].isReflecting = true;
-						spellCooldown(fightId,player,spellName,30)
-						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + 30 + "~" + "dpvp-fighting-spell-label-reflect")
+						const reflectCooldown = 30 - (30 * fights[fightId][player].spellReduction);
+						spellCooldown(fightId,player,spellName,reflectCooldown)
+						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + reflectCooldown + "~" + "dpvp-fighting-spell-label-reflect")
 						server.publish(fightId,"Reflect=" + player)
 					}
 					break;
 				case "invisibility":
-					if (fights[fightId][player].mana >= 2) {
-						fights[fightId][player].mana -= 2;
-						fights[fightId][player].isInvisible = true;
-						setTimeout(()=>{
-							if(fights[fightId]) {
-								fights[fightId][player].isInvisible = false
-								server.publish(fightId,"Invisibility=" + player)
-							}
-						},4000)
-						spellCooldown(fightId,player,spellName,30)
-						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + 30 + "~" + "dpvp-fighting-spell-label-invisibility")
-						server.publish(fightId,"Invisibility=" + player)
-					}
+					fights[fightId][player].mana -= 2;
+					fights[fightId][player].isInvisible = true;
+					setTimeout(()=>{
+						if(fights[fightId]) {
+							fights[fightId][player].isInvisible = false
+							server.publish(fightId,"Invisibility=" + player)
+						}
+					},4000)
+					const invisibilityCooldown = 30 - (30 * fights[fightId][player].spellReduction);
+					spellCooldown(fightId,player,spellName,invisibilityCooldown)
+					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + invisibilityCooldown + "~" + "dpvp-fighting-spell-label-invisibility")
+					server.publish(fightId,"Invisibility=" + player)
 					break;
 				case "pet":
 					switch (fights[fightId][player].pet) {
