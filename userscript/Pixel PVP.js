@@ -1039,6 +1039,19 @@ const manaCost = {
 				websocket.send('ADD_FRIEND=' + value);
 				IdlePixelPlus.plugins.pvp.sendFR(value)
 			}
+			//Cache will accept external images now
+			Cache.getImage = function(url, pointer) {
+				if(!url.startsWith("https")) {url = get_image(url)}
+				if(Cache.global_ImageCache[pointer] != null) {
+					if (Cache.global_ImageCache[pointer].url == url) {
+						return Cache.global_ImageCache[pointer].obj;
+					}
+				}
+				
+				var imageObject = new ImageObject(url);
+				Cache.global_ImageCache[pointer] = imageObject;
+				return imageObject.obj;
+			}
 		}
 
 		sendPVPRequest() {

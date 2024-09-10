@@ -301,16 +301,14 @@ function castSpell(fightId,player,receiver,spellName) {
 				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 				return
 			}
+			let spellCooldown = 0;
 			switch (spellName) {
 				case "heal":
 					fights[fightId][player].mana -= 2;
 					const healAmount = 3 + fights[fightId][player].spellBonus;
 					fights[fightId][player].hp += healAmount;
 					fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
-					const healCooldown = 5 - (5 * fights[fightId][player].spellReduction);
-					spellCooldown(fightId,player,spellName,healCooldown)
-					updateStats(fightId)
-					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + healCooldown + "~" + "dpvp-fighting-spell-label-heal")
+					spellCooldown = 5 - (5 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"HitSplat=" + healAmount + "~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
 					break;
 				case "fire":
@@ -321,18 +319,14 @@ function castSpell(fightId,player,receiver,spellName) {
 						fireDamage *= 2
 					};
 					fights[fightId][receiver].hp -= fireDamage
-					const fireCooldown = 5 - (5 * fights[fightId][player].spellReduction);
-					spellCooldown(fightId,player,spellName,fireCooldown)
-					updateStats(fightId)
-					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + fireCooldown + "~" + "dpvp-fighting-spell-label-fire")
+					spellCooldown = 5 - (5 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"HitSplat="+fireDamage+"~images/fire_icon.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
 					break;
 				case "reflect":
 					if (!fights[fightId][player].isReflecting) {
 						fights[fightId][player].mana -= 1;
 						fights[fightId][player].isReflecting = true;
-						const reflectCooldown = 30 - (30 * fights[fightId][player].spellReduction);
-						spellCooldown(fightId,player,spellName,reflectCooldown)
+						spellCooldown = 30 - (30 * fights[fightId][player].spellReduction);
 						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + reflectCooldown + "~" + "dpvp-fighting-spell-label-reflect")
 						server.publish(fightId,"Reflect=" + player)
 					}
@@ -346,26 +340,50 @@ function castSpell(fightId,player,receiver,spellName) {
 							server.publish(fightId,"Invisibility=" + player)
 						}
 					},4000)
-					const invisibilityCooldown = 30 - (30 * fights[fightId][player].spellReduction);
-					spellCooldown(fightId,player,spellName,invisibilityCooldown)
-					fighters[player].ws.send("SpellCooldown=" + spellName + "~" + invisibilityCooldown + "~" + "dpvp-fighting-spell-label-invisibility")
+					spellCooldown = 30 - (30 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"Invisibility=" + player)
 					break;
 				case "pet":
+					if (!fights[fightId].config.petAlly) {return}
+					fights[fightId][player].mana -= 5;
+					spellCooldown = 15
 					switch (fights[fightId][player].pet) {
 						case "blackChicken":
-							break;
-						case "blueChicken":
+							if (fights[fightId][player].petLevel == 1) {
+								return
+							} else if (fights[fightId][player].petLevel == 2) {
+								fights[fightId][player].hp += 5;
+								spellCooldown = 9999
+								server.publish(fightId,"HitSplat=MONSTER!!!~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
+								unlockTitle(player, "monster")
+							} else {
+								fights[fightId][receiver].hp -= 5;
+								server.publish(fightId,"HitSplat=5~images/black_medalion.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+							}
 							break;
 						case "goldenChicken":
+							const goldenPower = 2 + fights[fightId][player].petLevel
+							fights[fightId][player].hp += goldenPower;
+							fights[fightId][receiver].hp -= goldenPower;
+							server.publish(fightId,"HitSplat=" + goldenPower + "~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
+							server.publish(fightId,"HitSplat=" + goldenPower + "~https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/goldenEgg.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 							break
 						case "spirit":
+							const spiritPower = 1 + (fights[fightId][player].petLevel * 2)
+							fights[fightId][receiver].hp -= spiritPower
+							server.publish(fightId,"HitSplat=" + spiritPower + "~images/undead_staff_spirit.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 							break
 						case "whiteChicken":
+							const chickenPower = fights[fightId][player].petLevel
+							fights[fightId][receiver].hp -= chickenPower
+							server.publish(fightId,"HitSplat=" + chickenPower + "~images/breeding_chicken_egg~white~rgba(255,0,0,0.6)~blue~" + receiver)
 							break
 					}
 					break;
 			};
+			updateStats(fightId)
+			spellCooldown(fightId,player,spellName,spellCooldown)
+			fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellCooldown + "~" + "dpvp-fighting-spell-label-" + spellName)
 		}
 	}
 }
