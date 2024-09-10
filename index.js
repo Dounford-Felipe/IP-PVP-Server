@@ -298,7 +298,7 @@ function castSpell(fightId,player,receiver,spellName) {
 			//It has 15, 25 or 50% chance to fail
 			if(checkSuccess(fights[fightId][player].spellFail)) {
 				fights[fightId][player].mana -= manaCost[spellName];
-				server.publish(fightId,"HitSplat=MISS~images/miss.png~red~rgba(255,0,0,0.4)~blue~" + receiver);
+				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 				return
 			}
 			switch (spellName) {
@@ -316,7 +316,7 @@ function castSpell(fightId,player,receiver,spellName) {
 				case "fire":
 					fights[fightId][player].mana -= 3;
 					const fireAmount = 6 + fights[fightId][player].spellBonus;
-					let fireDamage = Math.floor(Math.random() * fireAmount) + parseInt(fights[fightId][player].magicBonus);
+					let fireDamage = Math.floor(Math.random() * fireAmount) + parseInt(fights[fightId][player].magicBonus) + Math.sign(fights[fightId][player].burnEffect);
 					if (fights[fightId].config.fireWeakness == true) {
 						fireDamage *= 2
 					};
@@ -426,6 +426,10 @@ function hitRate(fightId,defence,accuracy) {
 //Attack function 
 function attack(fightId,attacker,receiver){
 	if (fights[fightId]) {
+		//Attack fail
+		if(checkSuccess(fights[fightId][player].attackFail)) {
+			server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+		} else {
 		//Poison
 		if (fights[fightId][receiver].poisoned == false && fights[fightId][attacker].weapon.includes('poison')) {
 			fights[fightId][receiver].poisoned = true;
@@ -445,11 +449,11 @@ function attack(fightId,attacker,receiver){
 					if (fights[fightId].config.noRanged) {
 						server.publish(fightId,"HitSplat=IMMUNE~images/blocked.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
 					} else {
-						let damageDone = Math.floor(Math.random() * parseInt(fights[fightId][attacker].arrowDamage));
+						let damageDone = Math.floor(Math.random() * fights[fightId][attacker].arrowDamage + (fights[fightId][attacker].arrowDamage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
 						if ((fights[fightId].config.fireWeakness && fights[fightId][attacker].arrows == 'fire_arrows') || (fights[fightId].config.iceWeakness == true && fights[fightId][attacker].arrows == 'ice_arrows')) {
 							damageDone *= 2;
 						}
-						if (fights[fightId][receiver].isReflecting == true && damageDone > 0) {
+						if (fights[fightId][receiver].isReflecting && damageDone > 0) {
 							fights[fightId][attacker].hp -= damageDone;
 							fights[fightId][receiver].isReflecting = false;
 							server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
@@ -459,7 +463,7 @@ function attack(fightId,attacker,receiver){
 						}
 					};
 				} else {
-					let damageDone = Math.floor(Math.random() * parseInt(fights[fightId][attacker].damage))
+					let damageDone = Math.floor(Math.random() * fights[fightId][attacker].damage + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
 					if (fights[fightId].config.area == "mansion") {
 						if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
 						if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
@@ -480,6 +484,7 @@ function attack(fightId,attacker,receiver){
 		} else {
 			server.publish(fightId,"HitSplat=0~images/blocked.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 		};
+		}
 		//Update stats
 		updateStats(fightId)
 		//Attack again
@@ -494,7 +499,7 @@ function tick(fightId) {
 			if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
 					fights[fightId][player].hp = 1;
-					fights[fightId][player].extraLife = false;
+					fights[fightId][player].extraLife -= 1;
 					updateStats(fightId)
 				} else {
 					endFight(fightId,player);
