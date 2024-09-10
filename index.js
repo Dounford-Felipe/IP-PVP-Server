@@ -427,7 +427,7 @@ function hitRate(fightId,defence,accuracy) {
 function attack(fightId,attacker,receiver){
 	if (fights[fightId]) {
 		//Attack fail
-		if(checkSuccess(fights[fightId][player].attackFail)) {
+		if(checkSuccess(fights[fightId][player].attackFail) || checkSuccess(fights[fightId][receiver].dodgeChance)) {
 			server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 		} else {
 		//Poison
@@ -437,7 +437,7 @@ function attack(fightId,attacker,receiver){
 			poison(fightId,receiver);
 		};
 		//If hit succeed 
-		if (hitRate(fightId,fights[fightId][receiver].defence,fights[fightId][attacker].accuracy)) {
+		if (hitRate(fightId,fights[fightId][receiver].defence + fights[fightId][receiver].bonusDefence,fights[fightId][attacker].accuracy + fights[fightId][attacker].bonusAccuracy)) {
 			if (fightId,fights[fightId][receiver].isInvisible) {
 				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 			} else {
@@ -449,7 +449,7 @@ function attack(fightId,attacker,receiver){
 					if (fights[fightId].config.noRanged) {
 						server.publish(fightId,"HitSplat=IMMUNE~images/blocked.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
 					} else {
-						let damageDone = Math.floor(Math.random() * fights[fightId][attacker].arrowDamage + (fights[fightId][attacker].arrowDamage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
+						let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].arrowDamage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].arrowDamage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
 						if ((fights[fightId].config.fireWeakness && fights[fightId][attacker].arrows == 'fire_arrows') || (fights[fightId].config.iceWeakness == true && fights[fightId][attacker].arrows == 'ice_arrows')) {
 							damageDone *= 2;
 						}
@@ -463,7 +463,7 @@ function attack(fightId,attacker,receiver){
 						}
 					};
 				} else {
-					let damageDone = Math.floor(Math.random() * fights[fightId][attacker].damage + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
+					let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].damage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
 					if (fights[fightId].config.area == "mansion") {
 						if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
 						if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
@@ -488,7 +488,8 @@ function attack(fightId,attacker,receiver){
 		//Update stats
 		updateStats(fightId)
 		//Attack again
-		setTimeout(function(){attack(fightId,attacker,receiver)},(7-fights[fightId][attacker].speed)*1000)
+		const newSpeed = fights[fightId][attacker].speed + fights[fightId][attacker].bonusSpeed
+		setTimeout(function(){attack(fightId,attacker,receiver)},(7-newSpeed)*1000)
 	}
 }
 
