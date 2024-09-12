@@ -195,7 +195,7 @@ const manaCost = {
 			const newTitle = localStorage.getItem("dPVP-" + username + "currentTitle") || "novice";
 			this.changeTitle(newTitle);
 			const newPet = localStorage.getItem("dPVP-" + username + "currentPet") || "calicoCat";
-			this.changeTitle(newPet);
+			this.equipPet(newPet);
 			const historyString = localStorage.getItem("dPVP-" + username + "fightHistory");
 			if (historyString) {
 				fightHistory = JSON.parse(historyString);
@@ -271,6 +271,22 @@ const manaCost = {
 				coins = Json.coins;
 				titles = JSON.parse(Json.titles);
 				wins = Json.wins;
+
+				if (window['var_chat_tag'] !== undefined && !titles.includes("contributor")) {
+					fetch("https://idle-pixel-pvp.vercel.app/contributor", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({name: username})
+					}).then((response) => {
+						const message = response.json();
+						if (message === "added") {
+							titles.push("contributor");
+							document.getElementById("dpvpcontributor").style.display = "";
+						}
+					})
+				}
 
 				boughtPets.forEach((pet) => {
 					document.getElementById("dpvp" + pet).style.display = "";
