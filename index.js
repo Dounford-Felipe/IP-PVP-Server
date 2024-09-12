@@ -11,10 +11,10 @@ const manaCost = {
 	pet: 5
 };
 
-/* const turso = createClient({
+const turso = createClient({
 	url: process.env.TURSO_DATABASE_URL,
 	authToken: process.env.TURSO_AUTH_TOKEN,
-}); */
+});
 
 const server = Bun.serve({
 	port: 3000,
@@ -551,9 +551,13 @@ function tick(fightId) {
 	}
 }
 
-async function looting(fightId, winner) {
+async function looting(fightId, winner, loser) {
 	try {
 		fighters[winner].ws.send('FightResult=Winner');
+
+		const user = await turso.execute('SELECT * FROM players WHERE name = ?', [winner]);
+		const titles = JSON.parse(user.rows[0].titles);
+		const wins = user.rows[0].wins
 		//websocket to update coins
 		await turso.execute('UPDATE players SET coins = coins + 1 WHERE name = ?', [winner]);
 		await turso.execute('UPDATE players SET wins = wins + 1 WHERE name = ?', [winner]);
@@ -563,6 +567,21 @@ async function looting(fightId, winner) {
 		if (pet !== "none") {
 			await turso.execute('UPDATE petsInfo SET ? = ? + 1	WHERE name = ?', [pet, pet, winner]);
 		}
+
+		if ((loser === "i am smitty" || loser === "smitty is me") && !titles.includes('bossSlayer')) {
+			unlockTitle(winner, 'bossSlayer', user);
+		}
+		if (wins == 10) {
+			unlockTitle(winner, 'apprentice', user);
+		} else if (wins == 25 ) {
+			unlockTitle(winner, 'expert', user);
+		} else if (wins == 50) {
+			unlockTitle(winner, 'champion', user);
+		} else if (wins == 100) {
+			unlockTitle(winner, 'legend', user);
+		} else if (wins == 150) {
+			unlockTitle(winner, 'immortal', user);
+		}
 	} catch (error) {
 		console.log(error.message)
 	}
@@ -571,18 +590,29 @@ async function looting(fightId, winner) {
 function endFight(fightId, player) {
 	clearInterval(fights[fightId].tick);
 
-	const looser = fights[fightId][player].username
+	const loser = fights[fightId][player].username
 	const winner = fights[fightId][player].enemyUsername
 	
-	looting(fightId,winner)
-	fighters[looser].ws.send('FightResult=Loser');
+	looting(fightId, winner, loser)
+	fighters[loser].ws.send('FightResult=Loser');
 
 	fighters[winner].ws.close();
-	fighters[looser].ws.close();
+	fighters[loser].ws.close();
 	delete fighters[winner];
-	delete fighters[looser];
+	delete fighters[loser];
 
 	delete(fights[fightId])
+}
+
+async function unlockTitle(player, title, json) {
+	const user = typeof json !== 'undefined' ? json : await turso.execute('SELECT * FROM players WHERE name = ?', [player]);
+	const titles = JSON.parse(user.rows[0].titles);
+
+	if (titles.includes(title)) {return}
+
+	await turso.execute('UPDATE players SET titles = ? WHERE name = ?', [JSON.stringify([...titles, title]), player]);
+	
+	fighters[player].ws.send('NewTitle=' + title);
 }
 
 function getToken(user) {
