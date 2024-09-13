@@ -39,11 +39,14 @@ const server = Bun.serve({
 
 		},
 		close(ws) {
-			if(fights[ws.channelId]) {endFight(ws.channelId, ws.username)};
+			clearInterval(fights[ws.channelId].tick);
 			ws.unsubscribe(ws.channelId);
 			delete fighters[ws.username];
-			delete fighters[ws.enemyUsername];
-			delete fights[ws.channelId];
+			if (fighters[ws.enemyUsername]) {
+				fighters[ws.enemyUsername].ws.close();
+			} else {
+				delete fights[ws.channelId];
+			}
 			console.log('Client disconnected');
 		}
 	}
@@ -513,6 +516,7 @@ function attack(fightId,attacker,receiver){
 //Evething that should be called each second
 function tick(fightId) {
 	if (fights[fightId]) {
+		if (fights[fightId].ended) {return}
 		[fights[fightId].player1,fights[fightId].player2].forEach((player) => {
 			if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
@@ -520,6 +524,8 @@ function tick(fightId) {
 					fights[fightId][player].extraLife -= 1;
 					updateStats(fightId)
 				} else {
+					console.log("Player " + player + " died");
+					fights[fightId].ended = true;
 					endFight(fightId,player);
 				}
 			};
@@ -586,21 +592,15 @@ async function looting(fightId, winner, loser) {
 	}
 }
 
-function endFight(fightId, player) {
-	clearInterval(fights[fightId].tick);
-
-	const loser = player
-	const winner = fights[fightId][player].enemyUsername
+async function endFight(fightId, loser) {
+	console.log(fighters)
+	console.log(fights[fightId])
+	const winner = fights[fightId][loser].enemyUsername
 	
-	looting(fightId, winner, loser)
+	await looting(fightId, winner, loser)
 	fighters[loser].ws.send('FightResult=Loser');
 
 	fighters[winner].ws.close();
-	fighters[loser].ws.close();
-	delete fighters[winner];
-	delete fighters[loser];
-
-	delete(fights[fightId])
 }
 
 async function unlockTitle(player, title, json) {

@@ -217,7 +217,6 @@ const manaCost = {
 		}
  
 		onCustomMessageReceived(player, content, callbackId) {
-			console.log(content)
             if(content.startsWith("friendRequest")) {
 				if (this.blockAll == false && !this.blockedUsers.includes(player)) {
 					this.receiveFR(player);
@@ -310,9 +309,10 @@ const manaCost = {
 				if (Json == "none") return;
 
 				for (let pet in pets) {
-					pets[pet].xp = Json[pet].xp || 0;
-					pets[pet].level = Json[pet].level > 25 ? 3 : Json[pet].level > 10 ? 2 : 1;
+					pets[pet].xp = Json[pet];
+					pets[pet].level = Json[pet] > 25 ? 3 : Json[pet] > 10 ? 2 : 1;
 				}
+				console.log(pets)
 			} catch (error) {
 				console.error(error.message);
 			}
@@ -1065,6 +1065,7 @@ const manaCost = {
 			} else {
 				resultText.innerHTML = `You lost against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, better luck next time!`
 			}
+			switch_panels('panel-dounfordPVP')
 			document.getElementById("dpvpResult").showModal();
 		}
 
@@ -1235,7 +1236,6 @@ const manaCost = {
 					this.fightHitplat[this.currentEnemy] = {};
 					this.fightHitplat[username] = {};
 					this.startPVP();
-					console.log(this.fight)
 					break
 				case "Rain":
 					document.getElementById("combat-rain").style.display = "";
