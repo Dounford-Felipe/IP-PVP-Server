@@ -173,10 +173,10 @@ const manaCost = {
 			}
 		}
 		
-		onLogin() {
+		async onLogin() {
 			username = IdlePixelPlus.getVar("username");
 			userToken = localStorage.getItem("dPVP-" + username + "Token") || "";
-			const users = localStorage.getItem('dPVP-BlockedUsers');
+			const users = localStorage.getItem('PVP-BlockedUsers');
 			if (users) {
 				this.blockedUsers = JSON.parse(users)
 				this.blockedUsers.forEach((user) => {this.blockPlayer(user)})
@@ -184,18 +184,24 @@ const manaCost = {
 			const petStorage = localStorage.getItem("dPVP-" + username + "pets");
 			if (petStorage) {
 				pets = JSON.parse(petStorage);
-				pets.forEach((pet) => {
-					document.getElementById("dpvpPetName" + pet).innerHTML = pets[pet].name;
-				})
 			}
-			this.getData().then(() => {				
-				this.shopInit();
-			})
 			this.addUI();
-			const newTitle = localStorage.getItem("dPVP-" + username + "currentTitle") || "novice";
-			this.changeTitle(newTitle);
-			const newPet = localStorage.getItem("dPVP-" + username + "currentPet") || "calicoCat";
-			this.equipPet(newPet);
+			
+			await this.getData()
+	
+			this.shopInit();
+
+			for (let pet in pets) {
+				document.getElementById("dpvpPetName" + pet).innerHTML = pets[pet].name;
+			}
+			const newTitle = localStorage.getItem("dPVP-" + username + "currentTitle");
+			if (newTitle) {
+				this.changeTitle(newTitle);
+			}
+			const newPet = localStorage.getItem("dPVP-" + username + "currentPet");
+			if (newPet) {
+				this.equipPet(newPet);
+			}
 			const historyString = localStorage.getItem("dPVP-" + username + "fightHistory");
 			if (historyString) {
 				fightHistory = JSON.parse(historyString);
@@ -280,8 +286,8 @@ const manaCost = {
 						},
 						body: JSON.stringify({name: username})
 					}).then((response) => {
-						const message = response.json();
-						if (message === "added") {
+						const Json = response.json();
+						if (Json.message === "added") {
 							titles.push("contributor");
 							document.getElementById("dpvpcontributor").style.display = "";
 						}
@@ -1039,7 +1045,7 @@ const manaCost = {
 				document.getElementById("dpvp" + newPet).style.backgroundColor = "bisque";
 				currentPet = newPet;
 				document.getElementById("dounfordPet").close();
-				Animations.scrollText("none", "white", "Pet Changed");
+				if(mouseX){Animations.scrollText("none", "white", "Pet Changed");}
 				localStorage.setItem("dPVP-" + username + "currentPet", currentPet)
 			}
 		}
@@ -1067,7 +1073,7 @@ const manaCost = {
 				document.getElementById("dpvp" + currentTitle).style.backgroundColor = "";
 				document.getElementById("dpvp" + title).style.backgroundColor = "bisque";
 				currentTitle = title;
-				Animations.scrollText("none", "white", "Title Changed");
+				if(mouseX){Animations.scrollText("none", "white", "Title Changed");}
 				localStorage.setItem("dPVP-" + username + "currentTitle", currentTitle)
 			}
 		}
