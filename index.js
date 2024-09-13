@@ -301,14 +301,14 @@ function castSpell(fightId,player,receiver,spellName) {
 				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 				return
 			}
-			let spellCooldown = 0;
+			let spellTimer = 0;
 			switch (spellName) {
 				case "heal":
 					fights[fightId][player].mana -= 2;
 					const healAmount = 3 + fights[fightId][player].spellBonus;
 					fights[fightId][player].hp += healAmount;
 					fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
-					spellCooldown = 5 - (5 * fights[fightId][player].spellReduction);
+					spellTimer = 5 - (5 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"HitSplat=" + healAmount + "~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
 					break;
 				case "fire":
@@ -319,15 +319,14 @@ function castSpell(fightId,player,receiver,spellName) {
 						fireDamage *= 2
 					};
 					fights[fightId][receiver].hp -= fireDamage
-					spellCooldown = 5 - (5 * fights[fightId][player].spellReduction);
+					spellTimer = 5 - (5 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"HitSplat="+fireDamage+"~images/fire_icon.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
 					break;
 				case "reflect":
 					if (!fights[fightId][player].isReflecting) {
 						fights[fightId][player].mana -= 1;
 						fights[fightId][player].isReflecting = true;
-						spellCooldown = 30 - (30 * fights[fightId][player].spellReduction);
-						fighters[player].ws.send("SpellCooldown=" + spellName + "~" + reflectCooldown + "~" + "dpvp-fighting-spell-label-reflect")
+						spellTimer = 30 - (30 * fights[fightId][player].spellReduction);
 						server.publish(fightId,"Reflect=" + player)
 					}
 					break;
@@ -340,20 +339,20 @@ function castSpell(fightId,player,receiver,spellName) {
 							server.publish(fightId,"Invisibility=" + player)
 						}
 					},4000)
-					spellCooldown = 30 - (30 * fights[fightId][player].spellReduction);
+					spellTimer = 30 - (30 * fights[fightId][player].spellReduction);
 					server.publish(fightId,"Invisibility=" + player)
 					break;
 				case "pet":
 					if (!fights[fightId].config.petAlly) {return}
 					fights[fightId][player].mana -= 5;
-					spellCooldown = 15
+					spellTimer = 15
 					switch (fights[fightId][player].pet) {
 						case "blackChicken":
 							if (fights[fightId][player].petLevel == 1) {
 								return
 							} else if (fights[fightId][player].petLevel == 2) {
 								fights[fightId][player].hp += 5;
-								spellCooldown = 9999
+								spellTimer = 9999
 								server.publish(fightId,"HitSplat=MONSTER!!!~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
 								unlockTitle(player, "monster")
 							} else {
@@ -382,8 +381,8 @@ function castSpell(fightId,player,receiver,spellName) {
 					break;
 			};
 			updateStats(fightId)
-			spellCooldown(fightId,player,spellName,spellCooldown)
-			fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellCooldown + "~" + "dpvp-fighting-spell-label-" + spellName)
+			spellCooldown(fightId,player,spellName,spellTimer)
+			fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellTimer + "~" + "dpvp-fighting-spell-label-" + spellName)
 		}
 	}
 }
@@ -445,7 +444,7 @@ function hitRate(fightId,defence,accuracy) {
 function attack(fightId,attacker,receiver){
 	if (fights[fightId]) {
 		//Attack fail
-		if(checkSuccess(fights[fightId][player].attackFail) || checkSuccess(fights[fightId][receiver].dodgeChance)) {
+		if(checkSuccess(fights[fightId][attacker].attackFail) || checkSuccess(fights[fightId][receiver].dodgeChance)) {
 			server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 		} else {
 		//Poison
@@ -590,7 +589,7 @@ async function looting(fightId, winner, loser) {
 function endFight(fightId, player) {
 	clearInterval(fights[fightId].tick);
 
-	const loser = fights[fightId][player].username
+	const loser = player
 	const winner = fights[fightId][player].enemyUsername
 	
 	looting(fightId, winner, loser)

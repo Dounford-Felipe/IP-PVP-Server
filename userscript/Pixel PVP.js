@@ -1045,7 +1045,7 @@ const manaCost = {
 				document.getElementById("dpvp" + newPet).style.backgroundColor = "bisque";
 				currentPet = newPet;
 				document.getElementById("dounfordPet").close();
-				if(mouseX){Animations.scrollText("none", "white", "Pet Changed");}
+				if(typeof mouseX !== "undefined"){Animations.scrollText("none", "white", "Pet Changed");}
 				localStorage.setItem("dPVP-" + username + "currentPet", currentPet)
 			}
 		}
@@ -1059,13 +1059,13 @@ const manaCost = {
 		}
 
 		fightResult(result) {
-			let resultText = document.getElementById("dPVPResultText");
+			let resultText = document.getElementById("dpvpResultText");
 			if (result == "Winner") {
 				resultText.innerHTML = `You won against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, you did great!`
 			} else {
 				resultText.innerHTML = `You lost against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, better luck next time!`
 			}
-			document.getElementById("dPVPResult").showModal();
+			document.getElementById("dpvpResult").showModal();
 		}
 
 		changeTitle(title) {
@@ -1073,7 +1073,7 @@ const manaCost = {
 				document.getElementById("dpvp" + currentTitle).style.backgroundColor = "";
 				document.getElementById("dpvp" + title).style.backgroundColor = "bisque";
 				currentTitle = title;
-				if(mouseX){Animations.scrollText("none", "white", "Title Changed");}
+				if(typeof mouseX !== 'undefined'){Animations.scrollText("none", "white", "Title Changed");}
 				localStorage.setItem("dPVP-" + username + "currentTitle", currentTitle)
 			}
 		}
