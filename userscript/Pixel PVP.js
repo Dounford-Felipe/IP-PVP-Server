@@ -318,16 +318,16 @@ const manaCost = {
 			}
 		}
 
-		buyPet(petName) {
-			fetch("https://idle-pixel-pvp.vercel.app/pets", {
+		async buyPet(petName) {
+			const response = await fetch("https://idle-pixel-pvp.vercel.app/pets", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json"
 				},
 				body: JSON.stringify({name: username, pet: petName, token: userToken})
-			}).then((response) => {
-				return response.json();
 			})
+			const responseJson = await response.json();
+			return responseJson.bought
 		}
 
 		shopInit() {
@@ -1061,6 +1061,7 @@ const manaCost = {
 		fightResult(result) {
 			let resultText = document.getElementById("dpvpResultText");
 			if (result == "Winner") {
+				PixelShopPlus.coinIncrease("Moon Coins",1)
 				resultText.innerHTML = `You won against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, you did great!`
 			} else {
 				resultText.innerHTML = `You lost against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, better luck next time!`
@@ -1160,7 +1161,7 @@ const manaCost = {
 		}
 
 		connectWebSocket(player1){
-			pvpWebSocket = new WebSocket('ws://localhost:3000');
+			pvpWebSocket = new WebSocket('ws://localhost:7830');
 
 			pvpWebSocket.addEventListener('open', () => {
 				console.log('Connected to PVP server');
@@ -1229,6 +1230,7 @@ const manaCost = {
 			switch (key) {
 				case "UserToken":
 					userToken = value;
+					localStorage.setItem("dPVP-" + username + "Token", userToken);
 					break;
 				case "Fight":
 					const parsedValue = JSON.parse(value);

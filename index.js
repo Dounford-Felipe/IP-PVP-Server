@@ -17,7 +17,8 @@ const turso = createClient({
 });
 
 const server = Bun.serve({
-	port: 3000,
+	hostname: "127.0.0.1",
+	port: 7830,
 	fetch(request, server) {
 		/* console.log(request.headers) */
 		if (server.upgrade(request)) {
@@ -483,21 +484,35 @@ function attack(fightId,attacker,receiver){
 						}
 					};
 				} else {
-					let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].damage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
-					if (fights[fightId].config.area == "mansion") {
-						if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
-						if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
-					} else if (fights[fightId].config.area == "beach") {
-						if (fights[fightId][attacker].weapon.includes('trident')) {damageDone *= 2};
-					};
-					if (fights[fightId][receiver].isReflecting && damageDone > 0) {
-						fights[fightId][attacker].hp -= damageDone;
+					let meleeDamage = 0;
+					let meleeText = ""
+					function meleeAttack(){
+						let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].damage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
+						if (fights[fightId].config.area == "mansion") {
+							if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
+							if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
+						} else if (fights[fightId].config.area == "beach") {
+							if (fights[fightId][attacker].weapon.includes('trident')) {damageDone *= 2};
+						};
+						return damageDone
+					}
+					if (fights[fightId][attacker].weapon.includes("stinger_dagger")) {
+						const d1 = meleeAttack();
+						const d2 = meleeAttack();
+						const d3 = meleeAttack();
+						meleeDamage = d1 + d2 + d3;
+						meleeText = d1 + ", " + d2 + ", " + d3
+					} else {
+						meleeDamage = meleeText = meleeAttack();
+					}
+					if (fights[fightId][receiver].isReflecting && meleeDamage > 0) {
+						fights[fightId][attacker].hp -= meleeDamage;
 						fights[fightId][receiver].isReflecting = false;
 						server.publish(fightId,"Reflect=" + receiver)
-						server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
+						server.publish(fightId,"HitSplat=" + meleeText + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
 					} else {
-						fights[fightId][receiver].hp -= damageDone;
-						server.publish(fightId,"HitSplat=" + damageDone + "~images/" + fights[fightId][attacker].weapon + ".png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+						fights[fightId][receiver].hp -= meleeDamage;
+						server.publish(fightId,"HitSplat=" + meleeText + "~images/" + fights[fightId][attacker].weapon + ".png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 					};
 				};
 			}
@@ -516,7 +531,10 @@ function attack(fightId,attacker,receiver){
 //Evething that should be called each second
 function tick(fightId) {
 	if (fights[fightId]) {
-		if (fights[fightId].ended) {return}
+		if (fights[fightId].ended) {
+			clearInterval(fights[fightId].tick);
+			return
+		}
 		[fights[fightId].player1,fights[fightId].player2].forEach((player) => {
 			if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
