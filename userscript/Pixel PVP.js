@@ -319,15 +319,17 @@ const manaCost = {
 		}
 
 		async buyPet(petName) {
-			const response = await fetch("https://idle-pixel-pvp.vercel.app/pets", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({name: username, pet: petName, token: userToken})
-			})
-			const responseJson = await response.json();
-			return responseJson.bought
+			if (userToken !== "") {
+				const response = await fetch("https://idle-pixel-pvp.vercel.app/pets", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify({name: username, pet: petName, token: userToken})
+				})
+				const responseJson = await response.json();
+				return responseJson.bought
+			}
 		}
 
 		shopInit() {
@@ -341,6 +343,18 @@ const manaCost = {
 
 			let pets = [
 				{
+					name:"bamboo",
+					imageUrl: imagePath + "bamboo.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "Bamboo",
+					buyText: "Buy Bamboo",
+					boughtText: "Bamboo will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},{
 					name:"blackCat",
 					imageUrl: imagePath + "blackCat.png",
 					coin: "Moon Coins",
@@ -348,33 +362,10 @@ const manaCost = {
 					tooltipText: "Black Cat",
 					buyText: "Buy Black Cat",
 					boughtText: "Black Cat will be your friend forever",
-				},
-				{
-					name:"whiteCat",
-					imageUrl: imagePath + "whiteCat.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "White Cat",
-					buyText: "Buy White Cat",
-					boughtText: "White Cat will be your friend forever",
-				},
-				{
-					name:"calicoCat",
-					imageUrl: imagePath + "calicoCat.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "Calico Cat",
-					buyText: "Buy Calico Cat",
-					boughtText: "Calico Cat will be your friend forever",
-				},
-				{
-					name:"whiteChicken",
-					imageUrl: imagePath + "whiteChicken.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "White Chicken",
-					buyText: "Buy White Chicken",
-					boughtText: "White Chicken will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name:"blackChicken",
@@ -384,6 +375,10 @@ const manaCost = {
 					tooltipText: "Black Chicken",
 					buyText: "Buy Black Chicken",
 					boughtText: "Black Chicken will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name: "blueChicken",
@@ -393,15 +388,10 @@ const manaCost = {
 					tooltipText: "Blue Chicken",
 					buyText: "Buy Blue Chicken",
 					boughtText: "Blue Chicken will be your friend forever",
-				},
-				{
-					name: "goldenChicken",
-					imageUrl: imagePath + "goldenChicken.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "Golden Chicken",
-					buyText: "Buy Golden Chicken",
-					boughtText: "Golden Chicken will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name: "blueMushroom",
@@ -411,24 +401,10 @@ const manaCost = {
 					tooltipText: "Blue Mushroom",
 					buyText: "Buy Blue Mushroom",
 					boughtText: "Blue Mushroom will be your friend forever",
-				},
-				{
-					name: "greenMushroom",
-					imageUrl: imagePath + "greenMushroom.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "Green Mushroom",
-					buyText: "Buy Green Mushroom",
-					boughtText: "Green Mushroom will be your friend forever",
-				},
-				{
-					name: "spirit",
-					imageUrl: imagePath + "spirit.png",
-					coin: "Moon Coins",
-					price: 10,
-					tooltipText: "Spirit",
-					buyText: "Buy Spirit",
-					boughtText: "Spirit will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name: "fireSpirit",
@@ -438,6 +414,49 @@ const manaCost = {
 					tooltipText: "Fire Spirit",
 					buyText: "Buy Fire Spirit",
 					boughtText: "Fire Spirit will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name: "goldenChicken",
+					imageUrl: imagePath + "goldenChicken.png",
+					coin: "Moon Coins",
+					price: 25,
+					tooltipText: "Golden Chicken",
+					buyText: "Buy Golden Chicken",
+					boughtText: "Golden Chicken will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name: "greenMushroom",
+					imageUrl: imagePath + "greenMushroom.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "Green Mushroom",
+					buyText: "Buy Green Mushroom",
+					boughtText: "Green Mushroom will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name: "horse",
+					imageUrl: imagePath + "horse.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "Horse",
+					buyText: "Buy Horse",
+					boughtText: "Horse will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name: "purpleJay",
@@ -447,6 +466,23 @@ const manaCost = {
 					tooltipText: "Purple Jay",
 					buyText: "Buy Purple Jay",
 					boughtText: "Purple Jay will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name: "spirit",
+					imageUrl: imagePath + "spirit.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "Spirit",
+					buyText: "Buy Spirit",
+					boughtText: "Spirit will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				},
 				{
 					name: "whiteBunny",
@@ -456,6 +492,49 @@ const manaCost = {
 					tooltipText: "White Bunny",
 					buyText: "Buy White Bunny",
 					boughtText: "White Bunny will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name:"whiteCat",
+					imageUrl: imagePath + "whiteCat.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "White Cat",
+					buyText: "Buy White Cat",
+					boughtText: "White Cat will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name:"whiteChicken",
+					imageUrl: imagePath + "whiteChicken.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "White Chicken",
+					buyText: "Buy White Chicken",
+					boughtText: "White Chicken will be your friend forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
+				},
+				{
+					name:"whyChicken",
+					imageUrl: imagePath + "whyChicken.png",
+					coin: "Moon Coins",
+					price: 10,
+					tooltipText: "Why Chicken",
+					buyText: "Buy Why Chicken",
+					boughtText: "You will be doomed forever",
+					callback: (pet) => {
+						boughtPets.push(pet);
+						document.getElementById("dpvp" + pet).style.display = "";
+					}
 				}
 			]
 
@@ -1452,10 +1531,20 @@ const manaCost = {
 			this.heroContext.drawImage(Cache.getImage("images/hero_amulet_" + Items.getItemString('amulet') + ".png","hero_dpvp_amulet"), 0, 300);
 			this.heroContext.drawImage(Cache.getImage("images/hero_shield_" + Items.getItemString('shield') + ".png","hero_dpvp_shield"), 0, 300);
 			this.heroContext.drawImage(Cache.getImage("images/hero_weapon_" + Items.getItemString('weapon') + ".png","hero_dpvp_weapon"), 0, 300);
-
+			
 			this.enemyContext.save();
     		this.enemyContext.translate(300, 0);
     		this.enemyContext.scale(-1,1);
+
+			if (this.fight.config.petAlly) {
+				this.heroContext.save();
+				this.heroContext.translate(300, 0);
+				this.heroContext.scale(-1,1);
+				this.heroContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[username].pet + ".png","hero_dpvp_" + this.fight[username].pet), 200, 480, 90,85)
+				this.heroContext.restore();
+
+				this.enemyContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[this.currentEnemy].pet + ".png","hero_dpvp_" + this.fight[this.currentEnemy].pet), 0, 480, 90,85)
+			}
 			this.enemyContext.drawImage(Cache.getImage("images/hero_head_" + this.fight[this.currentEnemy].head + ".png","enemy_dpvp_head"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_body_" + this.fight[this.currentEnemy].body + ".png","enemy_dpvp_body"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_gloves_" + this.fight[this.currentEnemy].gloves + ".png","enemy_dpvp_gloves"), 0, 300);

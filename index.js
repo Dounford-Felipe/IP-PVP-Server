@@ -20,7 +20,6 @@ const server = Bun.serve({
 	hostname: "127.0.0.1",
 	port: 7830,
 	fetch(request, server) {
-		/* console.log(request.headers) */
 		if (server.upgrade(request)) {
 			return;
 		}
@@ -32,8 +31,6 @@ const server = Bun.serve({
 			console.log('Client connected');
 		},
 		message(ws, message) {
-			console.log(`Received message: ${message}`);
-
 			const messageString = typeof message === 'string' ? message : new TextDecoder().decode(message);
 
 			handleMessage(ws, messageString);
@@ -586,33 +583,32 @@ async function looting(fightId, winner, loser) {
 		await turso.execute('UPDATE players SET wins = wins + 1 WHERE name = ?', [winner]);
 
 		//Gives pet xp
-		const pet = fights[fightId].player1.pet
+		const pet = fights[fightId][winner].pet
 		if (pet !== "none") {
-			await turso.execute('UPDATE petsInfo SET ? = ? + 1	WHERE name = ?', [pet, pet, winner]);
+			const query = `UPDATE petsInfo SET ${pet} = ${pet} + 1 WHERE name = ?`;
+			await turso.execute(query, [winner]);
 		}
 
 		if ((loser === "i am smitty" || loser === "smitty is me") && !titles.includes('bossSlayer')) {
 			unlockTitle(winner, 'bossSlayer', user);
 		}
-		if (wins == 10) {
+		if (wins == 9) {
 			unlockTitle(winner, 'apprentice', user);
-		} else if (wins == 25 ) {
+		} else if (wins == 24 ) {
 			unlockTitle(winner, 'expert', user);
-		} else if (wins == 50) {
+		} else if (wins == 49) {
 			unlockTitle(winner, 'champion', user);
-		} else if (wins == 100) {
+		} else if (wins == 99) {
 			unlockTitle(winner, 'legend', user);
-		} else if (wins == 150) {
+		} else if (wins == 149) {
 			unlockTitle(winner, 'immortal', user);
 		}
 	} catch (error) {
-		console.log(error.message)
+		console.log(error.message, "looting", fightId, winner, loser)
 	}
 }
 
 async function endFight(fightId, loser) {
-	console.log(fighters)
-	console.log(fights[fightId])
 	const winner = fights[fightId][loser].enemyUsername
 	
 	await looting(fightId, winner, loser)
