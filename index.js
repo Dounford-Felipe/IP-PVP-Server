@@ -227,6 +227,9 @@ async function handleMessage(ws, message) {
 							break;
 					}
 				}
+				//Add more health to balance the fight
+				fights[ws.channelId][ws.username].hp *= 3;
+				fights[ws.channelId][ws.username].maxHp *= 3;
 				if(fights[ws.channelId][ws.enemyUsername].hp) {
 					startFight(ws.channelId,ws.username,ws.enemyUsername);
 				}
