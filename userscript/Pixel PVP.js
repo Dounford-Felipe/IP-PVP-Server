@@ -106,6 +106,25 @@ let pets = {
 		xp: 0
 	}
 };
+const petsSize = {
+	bamboo: 85,
+	blackCat: 112,
+	blackChicken: 85,
+	blueChicken: 85,
+	blueMushroom: 85,
+	calicoCat: 112,
+	fireSpirit: 85,
+	goldenChicken: 85,
+	greenMushroom: 85,
+	horse: 121,
+	purpleJay: 85,
+	spirit: 85,
+	whiteBunny: 65,
+	whiteCat: 112,
+	whiteChicken: 85,
+	whyChicken: 85
+};
+const petsWithSpell = ["blackChicken","goldenChicken","spirit","whiteChicken"]
 const displayTitles = {
 	"dounford" : "DOUNFORD",
 	"contributor" : "Contributor",
@@ -126,8 +145,10 @@ const manaCost = {
 	heal: 2,
 	fire: 3,
 	reflect: 1,
-	invisibility: 2
+	invisibility: 2,
+	pet: 5
 };
+const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBonus","maxHp","maxMana","hp","mana"];
 
 (function() {
 	'use strict';
@@ -241,6 +262,8 @@ const manaCost = {
 				case "accuracy":
 				case "speed":
 				case "defence":
+					this.sendNewStats(key, parseInt(valueAfter));
+					break;
 				case "head":
 				case "body":
 				case "legs":
@@ -253,13 +276,13 @@ const manaCost = {
 					this.sendNewStats(key, valueAfter);
 					break;
 				case "melee_damage":
-					this.sendNewStats("damage", valueAfter);
+					this.sendNewStats("damage", parseInt(valueAfter));
 					break;
 				case "arrow_damage":
-					this.sendNewStats("arrowDamage", valueAfter);
+					this.sendNewStats("arrowDamage", parseInt(valueAfter));
 					break;
 				case "magic_bonus":
-					this.sendNewStats("magicBonus", valueAfter);
+					this.sendNewStats("magicBonus", parseInt(valueAfter));
 					break;
 			}
 		}
@@ -310,7 +333,7 @@ const manaCost = {
 
 				for (let pet in pets) {
 					pets[pet].xp = Json[pet];
-					pets[pet].level = Json[pet] > 25 ? 3 : Json[pet] > 10 ? 2 : 1;
+					pets[pet].level = Json[pet] > 24 ? 3 : Json[pet] > 9 ? 2 : 1;
 				}
 				console.log(pets)
 			} catch (error) {
@@ -991,6 +1014,11 @@ const manaCost = {
 								<img src="https://cdn.idle-pixel.com/images/invisibility_spell_icon.png">
 								<span id="dpvp-fighting-spell-label-invisibility" style="color: white;">Invisibility <span class="color-grey">(R)</span></span>
 							</div>
+
+							<div id="dpvp-fighting-spell-pet" onclick="IdlePixelPlus.plugins.pvp.castSpell('pet')" class="fighting-spell-area-invisibility hover shadow">
+								<img id="dpvp-fighting-spell-image-pet" src="https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/whiteChicken.png" style="width: 30px;">
+								<span id="dpvp-fighting-spell-label-pet" style="color: white;">Pet Spell <span class="color-grey" style="color: rgb(128, 128, 128);">(T)</span></span>
+							</div>
 						</div>
 			
 					
@@ -1093,6 +1121,7 @@ const manaCost = {
 						case "w": IdlePixelPlus.plugins.pvp.castSpell('fire'); break;
 						case "e": IdlePixelPlus.plugins.pvp.castSpell('reflect'); break;
 						case "r": IdlePixelPlus.plugins.pvp.castSpell('invisibility'); break;
+						case "t": IdlePixelPlus.plugins.pvp.castSpell('pet'); break;
 					}
 				}
 			});
@@ -1338,7 +1367,7 @@ const manaCost = {
 					this.fight[value].isInvisible = !this.fight[value].isInvisible;
 					break;
 				case "SpellCooldown":
-					this.spellCooldown(value_array[0],value_array[1],value_array[2]);
+					this.spellCooldown(value_array[0],value_array[1]);
 					break;
 				case "Poison":
 					this.fight[value].isPoisoned = true;
@@ -1353,7 +1382,7 @@ const manaCost = {
 					this.updateStatsBars();
 					break;
 				case "RefreshEnemy":
-					this.refreshEnemy(JSON.parse(value));
+					this.refreshEnemy(value_array[0],value_array[1]);
 					break;
 				case "FightResult":
 					let result = [this.currentEnemy,value,get_utc_time()]
@@ -1378,11 +1407,23 @@ const manaCost = {
 			document.getElementById("dpvp-fighting-hero-title").innerText = displayTitles[currentTitle]
 			document.getElementById("dpvp-fighting-enemy-label").innerText = this.currentEnemy
 			document.getElementById("dpvp-fighting-enemy-title").innerText = displayTitles[this.fight[this.currentEnemy].title]
-			document.getElementById("dpvpSpells").style.display = this.fight.config.noSpells ? "none" : "";
-			document.getElementById("dpvp-fighting-spell-label-heal").innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
-			document.getElementById("dpvp-fighting-spell-label-fire").innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
-			document.getElementById("dpvp-fighting-spell-label-reflect").innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
-			document.getElementById("dpvp-fighting-spell-label-invisibility").innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
+			if (this.fight.config.noSpells || (this.fight.config.petAlly && this.fight[username].pet == "whiteBunny")) {
+				document.getElementById("dpvpSpells").style.display = "none";
+			} else {
+				document.getElementById("dpvpSpells").style.display = "";
+				document.getElementById("dpvp-fighting-spell-label-heal").innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
+				document.getElementById("dpvp-fighting-spell-label-fire").innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
+				document.getElementById("dpvp-fighting-spell-label-reflect").innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
+				document.getElementById("dpvp-fighting-spell-label-invisibility").innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
+				if (this.fight.config.petAlly && petsWithSpell.includes(this.fight[username].pet) && (this.fight[username].pet !== "blackChicken" || this.fight[username].petLevel > 1)) {
+					document.getElementById("dpvp-fighting-spell-label-pet").innerHTML = 'Pet Spell <span class="color-grey" style="color: rgb(128, 128, 128);">(T)';
+					document.getElementById("dpvp-fighting-spell-image-pet").src = imagePath + this.fight[username].pet + ".png";
+					document.getElementById("dpvp-fighting-spell-pet").style.display = "";
+				} else {
+					document.getElementById("dpvp-fighting-spell-pet").style.display = "none";
+				}
+			}
+			
 			this.updateStatsBars();
 			this.fight.tick = setInterval(function() {
 				IdlePixelPlus.plugins.pvp.tick();
@@ -1399,8 +1440,11 @@ const manaCost = {
 			}
 		}
 
-		refreshEnemy(foe) {
-			this.fight[this.currentEnemy] = {...this.fight[this.currentEnemy], ...foe};
+		refreshEnemy(attribute, value) {
+			if (intStats.includes(attribute)) {
+				value = parseInt(value);
+			}
+			this.fight[this.currentEnemy][attribute] = value;
 			this.updateStatsBars();
 		}
 
@@ -1410,30 +1454,32 @@ const manaCost = {
 			}
 		}
 
-		spellCooldown(spellName, time, id) {
+		spellCooldown(spellName, time) {
 			if(this.fight[username]) {
-				this.fight[username].cooldowns[spellName] = time;
+				this.fight[username].cooldowns[spellName] = Math.max(0,time);
 				if (time > 0) {
-					document.getElementById(id).innerText = time;
-					setTimeout(function() {IdlePixelPlus.plugins.pvp.spellCooldown(spellName, time - 1, id)}, 1000);
+					document.getElementById("dpvp-fighting-spell-label-" + spellName).innerText = time;
+					setTimeout(function() {IdlePixelPlus.plugins.pvp.spellCooldown(spellName, time - 1)}, 1000);
 				} else {
 					if (this.fight[username].mana < manaCost[spellName]) {
-						document.getElementById(id).innerText = 'NO MANA';
+						document.getElementById("dpvp-fighting-spell-label-" + spellName).innerText = 'NO MANA';
 						return 
 					}
 					switch (spellName) {
 						case "heal":
-							document.getElementById(id).innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
+							document.getElementById("dpvp-fighting-spell-label-heal").innerHTML = 'Heal <span class="color-grey" style="color: rgb(128, 128, 128);">(Q)</span>';
 							break;
 						case "fire":
-							document.getElementById(id).innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
+							document.getElementById("dpvp-fighting-spell-label-fire").innerHTML = 'Fire <span class="color-grey" style="color: rgb(128, 128, 128);">(W)</span>';
 							break;
 						case "reflect":
-							document.getElementById(id).innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
+							document.getElementById("dpvp-fighting-spell-label-reflect").innerHTML = 'Reflect <span class="color-grey" style="color: rgb(128, 128, 128);">(E)</span>';
 							break;
 						case "invisibility":
-							document.getElementById(id).innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
+							document.getElementById("dpvp-fighting-spell-label-invisibility").innerHTML = 'Invisibility <span class="color-grey" style="color: rgb(128, 128, 128);">(R)</span>';
 							break;
+						case "pet":
+							document.getElementById("dpvp-fighting-spell-label-pet").innerHTML = 'Pet Spell <span class="color-grey" style="color: rgb(128, 128, 128);">(T)</span>';
 					}
 				}
 			}
@@ -1475,19 +1521,19 @@ const manaCost = {
 		//Evething that should be called each second
 		tick() {
 			//Hero Stats
-			document.getElementById("dpvp_combat_hero_accuracy").innerText = var_accuracy;
-			document.getElementById("dpvp_combat_hero_melee_damage").innerText = var_melee_damage;
-			document.getElementById("dpvp_combat_hero_arrow_damage").innerText = var_arrow_damage;
+			document.getElementById("dpvp_combat_hero_accuracy").innerText = this.fight[username].accuracy + this.fight[username].bonusAccuracy;
+			document.getElementById("dpvp_combat_hero_melee_damage").innerText = this.fight[username].damage + this.fight[username].bonusDamage;
+			document.getElementById("dpvp_combat_hero_arrow_damage").innerText = this.fight[username].arrowDamage + this.fight[username].bonusDamage;
 			document.getElementById("dpvp_combat_hero_magic_bonus").innerText = var_magic_bonus;
-			document.getElementById("dpvp_combat_hero_speed").innerText = var_speed;
-			document.getElementById("dpvp_combat_hero_defence").innerText = var_defence;
+			document.getElementById("dpvp_combat_hero_speed").innerText = this.fight[username].speed + this.fight[username].bonusSpeed;
+			document.getElementById("dpvp_combat_hero_defence").innerText = this.fight[username].defence + this.fight[username].bonusDefence;
 			//Enemy Stats
-			document.getElementById("dpvp_combat_enemy_accuracy").innerText = this.fight[this.currentEnemy].accuracy;
-			document.getElementById("dpvp_combat_enemy_melee_damage").innerText = this.fight[this.currentEnemy].damage;
-			document.getElementById("dpvp_combat_enemy_arrow_damage").innerText = this.fight[this.currentEnemy].arrowDamage;
+			document.getElementById("dpvp_combat_enemy_accuracy").innerText = this.fight[this.currentEnemy].accuracy + this.fight[this.currentEnemy].bonusAccuracy;
+			document.getElementById("dpvp_combat_enemy_melee_damage").innerText = this.fight[this.currentEnemy].damage + this.fight[this.currentEnemy].bonusDamage;
+			document.getElementById("dpvp_combat_enemy_arrow_damage").innerText = this.fight[this.currentEnemy].arrowDamage + this.fight[this.currentEnemy].bonusDamage;
 			document.getElementById("dpvp_combat_enemy_magic_bonus").innerText = this.fight[this.currentEnemy].magicBonus;
-			document.getElementById("dpvp_combat_enemy_speed").innerText = this.fight[this.currentEnemy].speed;
-			document.getElementById("dpvp_combat_enemy_defence").innerText = this.fight[this.currentEnemy].defence;
+			document.getElementById("dpvp_combat_enemy_speed").innerText = this.fight[this.currentEnemy].speed + this.fight[this.currentEnemy].bonusSpeed;
+			document.getElementById("dpvp_combat_enemy_defence").innerText = this.fight[this.currentEnemy].defence + this.fight[this.currentEnemy].bonusDefence;
 
 			this.tickCanvas();
 			this.manageHitplats();
@@ -1532,19 +1578,19 @@ const manaCost = {
 			this.heroContext.drawImage(Cache.getImage("images/hero_shield_" + Items.getItemString('shield') + ".png","hero_dpvp_shield"), 0, 300);
 			this.heroContext.drawImage(Cache.getImage("images/hero_weapon_" + Items.getItemString('weapon') + ".png","hero_dpvp_weapon"), 0, 300);
 			
-			this.enemyContext.save();
-    		this.enemyContext.translate(300, 0);
-    		this.enemyContext.scale(-1,1);
 
 			if (this.fight.config.petAlly) {
 				this.heroContext.save();
 				this.heroContext.translate(300, 0);
 				this.heroContext.scale(-1,1);
-				this.heroContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[username].pet + ".png","hero_dpvp_" + this.fight[username].pet), 200, 480, 90,85)
+				this.heroContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[username].pet + ".png","hero_dpvp_" + this.fight[username].pet), 200, 480, petsSize[this.fight[username].pet],85)
 				this.heroContext.restore();
 
-				this.enemyContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[this.currentEnemy].pet + ".png","hero_dpvp_" + this.fight[this.currentEnemy].pet), 0, 480, 90,85)
+				this.enemyContext.drawImage(Cache.getImage("https://res.cloudinary.com/dmhidlxwq/image/upload/v1724974600/pixel%20pvp/" + this.fight[this.currentEnemy].pet + ".png","hero_dpvp_" + this.fight[this.currentEnemy].pet), 200, 480, petsSize[this.fight[this.currentEnemy].pet],85)
 			}
+			this.enemyContext.save();
+    		this.enemyContext.translate(300, 0);
+    		this.enemyContext.scale(-1,1);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_head_" + this.fight[this.currentEnemy].head + ".png","enemy_dpvp_head"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_body_" + this.fight[this.currentEnemy].body + ".png","enemy_dpvp_body"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_gloves_" + this.fight[this.currentEnemy].gloves + ".png","enemy_dpvp_gloves"), 0, 300);

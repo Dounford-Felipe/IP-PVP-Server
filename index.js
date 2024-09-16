@@ -10,6 +10,14 @@ const manaCost = {
 	invisibility: 2,
 	pet: 5
 };
+const spellCooldowns = {
+	heal: 5,
+	fire: 5,
+	reflect: 30,
+	invisibility: 30,
+	pet: 15
+}
+const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBonus","maxHp","maxMana","hp","mana"];
 
 const turso = createClient({
 	url: process.env.TURSO_DATABASE_URL,
@@ -37,6 +45,7 @@ const server = Bun.serve({
 
 		},
 		close(ws) {
+			if (ws.isDebug) return;
 			clearInterval(fights[ws.channelId].tick);
 			ws.unsubscribe(ws.channelId);
 			delete fighters[ws.username];
@@ -109,6 +118,7 @@ async function handleMessage(ws, message) {
 						burnEffect: 0,
 						spellReduction: 0,
 						extraLife: 1,
+						afterDeathHP: 1,
 						isInvisible: false,
 						isReflecting: false,
 						poisoned: false,
@@ -135,6 +145,7 @@ async function handleMessage(ws, message) {
 						burnEffect: 0,
 						spellReduction: 0,
 						extraLife: 1,
+						afterDeathHP: 1,
 						isInvisible: false,
 						isReflecting: false,
 						poisoned: false,
@@ -170,6 +181,7 @@ async function handleMessage(ws, message) {
 					switch (player.pet) {
 						case "bamboo":
 							const newHP = player.petLevel == 3 ? 15 : player.petLevel == 2 ? 10 : 5;
+							player.afterDeathHP += newHP;
 							player.hp -= newHP;
 							player.maxHp -= newHP;
 							break;
@@ -202,13 +214,13 @@ async function handleMessage(ws, message) {
 							player.bonusSpeed += newSpeed;
 							break;
 						case "purpleJay":
-							const newDodge = player.petLevel == 3 ? 0.075 : player.petLevel == 2 ? 0.05 : 0.025;
+							const newDodge = player.petLevel == 3 ? 0.1 : player.petLevel == 2 ? 0.075 : 0.05;
 							player.dodgeChance += newDodge;
 							break;
 						case "whiteCat":
 							player.hp += 1;
 							player.maxHp += 1;
-							player.bonusDamage += player.petLevel == 2 ? 1 : 0;
+							player.bonusDamage += player.petLevel >= 2 ? 1 : 0;
 							player.bonusDefence += player.petLevel == 3 ? 1 : 0;
 							player.bonusAccuracy += player.petLevel == 3 ? 1 : 0;
 							break;
@@ -220,11 +232,17 @@ async function handleMessage(ws, message) {
 			}
 			break;
 		case "UpdateStats":
+			if (intStats.includes(value_array[0])) {
+				value_array[1] = parseInt(value_array[1]);
+			}
 			fights[ws.channelId][ws.username][value_array[0]] = value_array[1];
-			ws.publish(ws.channelId,"RefreshEnemy=" + JSON.stringify({[value_array[0]]:value_array[1]}))
+			ws.publish(ws.channelId,"RefreshEnemy=" + value_array[0] + "~" + value_array[1])
 			break;
 		case "Cast":
 			castSpell(ws.channelId,ws.username,ws.enemyUsername,value);
+			break;
+		case "Debug":
+			ws.isDebug = true;
 			break;
 		case "Info":
 			ws.send("Info=" + JSON.stringify(fights));
@@ -255,7 +273,7 @@ function checkSuccess(value) {
 //Cooldown Spell function
 function spellCooldown(fightId,player,spellName,time) {
 	if (fights[fightId]) {
-		fights[fightId][player].cooldowns[spellName] = time
+		fights[fightId][player].cooldowns[spellName] = Math.max(0,time)
 		if (time > 0) {
 			setTimeout(function(){
 				spellCooldown(fightId,player,spellName,time-1)
@@ -300,6 +318,9 @@ function castSpell(fightId,player,receiver,spellName) {
 			if(checkSuccess(fights[fightId][player].spellFail)) {
 				fights[fightId][player].mana -= manaCost[spellName];
 				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+				updateStats(fightId)
+				spellCooldown(fightId,player,spellName,spellCooldowns[spellName])
+				fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellCooldowns[spellName])
 				return
 			}
 			let spellTimer = 0;
@@ -350,7 +371,7 @@ function castSpell(fightId,player,receiver,spellName) {
 					switch (fights[fightId][player].pet) {
 						case "blackChicken":
 							if (fights[fightId][player].petLevel == 1) {
-								return
+								spellTimer = 9999
 							} else if (fights[fightId][player].petLevel == 2) {
 								fights[fightId][player].hp += 5;
 								spellTimer = 9999
@@ -376,14 +397,14 @@ function castSpell(fightId,player,receiver,spellName) {
 						case "whiteChicken":
 							const chickenPower = fights[fightId][player].petLevel
 							fights[fightId][receiver].hp -= chickenPower
-							server.publish(fightId,"HitSplat=" + chickenPower + "~images/breeding_chicken_egg~white~rgba(255,0,0,0.6)~blue~" + receiver)
+							server.publish(fightId,"HitSplat=" + chickenPower + "~images/breeding_chicken_egg.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 							break
 					}
 					break;
 			};
 			updateStats(fightId)
 			spellCooldown(fightId,player,spellName,spellTimer)
-			fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellTimer + "~" + "dpvp-fighting-spell-label-" + spellName)
+			fighters[player].ws.send("SpellCooldown=" + spellName + "~" + spellTimer)
 		}
 	}
 }
@@ -448,80 +469,80 @@ function attack(fightId,attacker,receiver){
 		if(checkSuccess(fights[fightId][attacker].attackFail) || checkSuccess(fights[fightId][receiver].dodgeChance)) {
 			server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 		} else {
-		//Poison
-		if (fights[fightId][receiver].poisoned == false && fights[fightId][attacker].weapon.includes('poison')) {
-			fights[fightId][receiver].poisoned = true;
-			server.publish(fightId,"Poison=" + receiver)
-			poison(fightId,receiver);
-		};
-		//If hit succeed 
-		if (hitRate(fightId,fights[fightId][receiver].defence + fights[fightId][receiver].bonusDefence,fights[fightId][attacker].accuracy + fights[fightId][attacker].bonusAccuracy)) {
-			if (fightId,fights[fightId][receiver].isInvisible) {
-				server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
-			} else {
-				if (fights[fightId].config.defender) {
-					fights[fightId][attacker].hp -= 1
-					server.publish(fightId,"HitSplat=1~images/skeleton_defender.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
-				}
-				if (ranged.includes(fights[fightId][attacker].weapon)) {
-					if (fights[fightId].config.noRanged) {
-						server.publish(fightId,"HitSplat=IMMUNE~images/blocked.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
-					} else {
-						let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].arrowDamage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].arrowDamage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
-						if ((fights[fightId].config.fireWeakness && fights[fightId][attacker].arrows == 'fire_arrows') || (fights[fightId].config.iceWeakness == true && fights[fightId][attacker].arrows == 'ice_arrows')) {
-							damageDone *= 2;
-						}
-						if (fights[fightId][receiver].isReflecting && damageDone > 0) {
-							fights[fightId][attacker].hp -= damageDone;
-							fights[fightId][receiver].isReflecting = false;
-							server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
-						} else {
-							fights[fightId][receiver].hp -= damageDone;
-							server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
-						}
-					};
+			//Poison
+			if (fights[fightId][receiver].poisoned == false && fights[fightId][attacker].weapon.includes('poison')) {
+				fights[fightId][receiver].poisoned = true;
+				server.publish(fightId,"Poison=" + receiver)
+				poison(fightId,receiver);
+			};
+			//If hit succeed 
+			if (hitRate(fightId,fights[fightId][receiver].defence + fights[fightId][receiver].bonusDefence,fights[fightId][attacker].accuracy + fights[fightId][attacker].bonusAccuracy)) {
+				if (fightId,fights[fightId][receiver].isInvisible) {
+					server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 				} else {
-					let meleeDamage = 0;
-					let meleeText = ""
-					function meleeAttack(){
-						let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].damage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
-						if (fights[fightId].config.area == "mansion") {
-							if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
-							if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
-						} else if (fights[fightId].config.area == "beach") {
-							if (fights[fightId][attacker].weapon.includes('trident')) {damageDone *= 2};
+					if (fights[fightId].config.defender) {
+						fights[fightId][attacker].hp -= 1
+						server.publish(fightId,"HitSplat=1~images/skeleton_defender.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
+					}
+					if (ranged.includes(fights[fightId][attacker].weapon)) {
+						if (fights[fightId].config.noRanged) {
+							server.publish(fightId,"HitSplat=IMMUNE~images/blocked.png~white~rgba(255,0,0,0.4)~blue~" + receiver)
+						} else {
+							let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].arrowDamage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].arrowDamage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
+							if ((fights[fightId].config.fireWeakness && fights[fightId][attacker].arrows == 'fire_arrows') || (fights[fightId].config.iceWeakness == true && fights[fightId][attacker].arrows == 'ice_arrows')) {
+								damageDone *= 2;
+							}
+							if (fights[fightId][receiver].isReflecting && damageDone > 0) {
+								fights[fightId][attacker].hp -= damageDone;
+								fights[fightId][receiver].isReflecting = false;
+								server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
+							} else {
+								fights[fightId][receiver].hp -= damageDone;
+								server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+							}
 						};
-						return damageDone
-					}
-					if (fights[fightId][attacker].weapon.includes("stinger_dagger")) {
-						const d1 = meleeAttack();
-						const d2 = meleeAttack();
-						const d3 = meleeAttack();
-						meleeDamage = d1 + d2 + d3;
-						meleeText = d1 + ", " + d2 + ", " + d3
 					} else {
-						meleeDamage = meleeText = meleeAttack();
-					}
-					if (fights[fightId][receiver].isReflecting && meleeDamage > 0) {
-						fights[fightId][attacker].hp -= meleeDamage;
-						fights[fightId][receiver].isReflecting = false;
-						server.publish(fightId,"Reflect=" + receiver)
-						server.publish(fightId,"HitSplat=" + meleeText + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
-					} else {
-						fights[fightId][receiver].hp -= meleeDamage;
-						server.publish(fightId,"HitSplat=" + meleeText + "~images/" + fights[fightId][attacker].weapon + ".png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+						let meleeDamage = 0;
+						let meleeText = ""
+						function meleeAttack(){
+							let damageDone = Math.floor(Math.random() * (fights[fightId][attacker].damage + fights[fightId][attacker].bonusDamage) + (fights[fightId][attacker].damage * fights[fightId][attacker].attackFail)) + fights[fightId][attacker].burnEffect;
+							if (fights[fightId].config.area == "mansion") {
+								if (fights[fightId][attacker].weapon == 'scythe') {damageDone *= 2};
+								if (fights[fightId][attacker].weapon == 'double_scythe') {damageDone *= 4};
+							} else if (fights[fightId].config.area == "beach") {
+								if (fights[fightId][attacker].weapon.includes('trident')) {damageDone *= 2};
+							};
+							return damageDone
+						}
+						if (fights[fightId][attacker].weapon.includes("stinger_dagger")) {
+							const d1 = meleeAttack();
+							const d2 = meleeAttack();
+							const d3 = meleeAttack();
+							meleeDamage = d1 + d2 + d3;
+							meleeText = d1 + ", " + d2 + ", " + d3
+						} else {
+							meleeDamage = meleeText = meleeAttack();
+						}
+						if (fights[fightId][receiver].isReflecting && meleeDamage > 0) {
+							fights[fightId][attacker].hp -= meleeDamage;
+							fights[fightId][receiver].isReflecting = false;
+							server.publish(fightId,"Reflect=" + receiver)
+							server.publish(fightId,"HitSplat=" + meleeText + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
+						} else {
+							fights[fightId][receiver].hp -= meleeDamage;
+							server.publish(fightId,"HitSplat=" + meleeText + "~images/" + fights[fightId][attacker].weapon + ".png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+						};
 					};
-				};
-			}
-		} else {
-			server.publish(fightId,"HitSplat=0~images/blocked.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
-		};
+				}
+			} else {
+				server.publish(fightId,"HitSplat=0~images/blocked.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+			};
+			updateStats(fightId)
 		}
 		//Update stats
-		updateStats(fightId)
 		//Attack again
-		const newSpeed = fights[fightId][attacker].speed + fights[fightId][attacker].bonusSpeed
-		setTimeout(function(){attack(fightId,attacker,receiver)},(7-newSpeed)*1000)
+		const newSpeed = Math.max(1, 7 - (fights[fightId][attacker].speed + fights[fightId][attacker].bonusSpeed))
+		setTimeout(function(){attack(fightId,attacker,receiver)},newSpeed*1000)
 	}
 }
 
@@ -533,9 +554,9 @@ function tick(fightId) {
 			return
 		}
 		[fights[fightId].player1,fights[fightId].player2].forEach((player) => {
-			if (fights[fightId][player].hp <= 0) {
+			/* if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
-					fights[fightId][player].hp = 1;
+					fights[fightId][player].hp = fights[fightId][player].afterDeathHP;
 					fights[fightId][player].extraLife -= 1;
 					updateStats(fightId)
 				} else {
@@ -543,7 +564,7 @@ function tick(fightId) {
 					fights[fightId].ended = true;
 					endFight(fightId,player);
 				}
-			};
+			}; */
 			if (fights[fightId].config.coldDay) {
 				const coldDamage = 5 - fights[fightId][player].coldProtection;
 				fights[fightId][player].hp -= coldDamage
@@ -575,7 +596,7 @@ async function looting(fightId, winner, loser) {
 	try {
 		fighters[winner].ws.send('FightResult=Winner');
 
-		const user = await turso.execute('SELECT * FROM players WHERE name = ?', [winner]);
+		/* const user = await turso.execute('SELECT * FROM players WHERE name = ?', [winner]);
 		const titles = JSON.parse(user.rows[0].titles);
 		const wins = user.rows[0].wins
 		//websocket to update coins
@@ -602,7 +623,7 @@ async function looting(fightId, winner, loser) {
 			unlockTitle(winner, 'legend', user);
 		} else if (wins == 149) {
 			unlockTitle(winner, 'immortal', user);
-		}
+		} */
 	} catch (error) {
 		console.log(error.message, "looting", fightId, winner, loser)
 	}

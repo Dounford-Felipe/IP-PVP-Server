@@ -1,0 +1,30 @@
+<pre id="info"></pre>
+<pre id="users"></pre>
+<button onclick="socket.send('Info')">Info</button>
+<button onclick="socket.send('UserInfo')">UserInfo</button>
+<script>
+	const socket = new WebSocket('ws://localhost:7830');
+	let fights = {};
+	let fighters = {};
+  
+	socket.addEventListener('open', () => {
+	  console.log('Conectado ao servidor WebSocket');
+	  socket.send("Debug")
+	});
+  
+	socket.addEventListener('message', (event) => {
+	  console.log('Mensagem do servidor:', event.data);
+	  if (event.data.startsWith('Info')) {
+		  fights = JSON.parse(event.data.slice(5));
+		  document.getElementById("info").innerHTML = JSON.stringify(fights, null, 4);
+	  } else if (event.data.startsWith('UserInfo')) {
+		  fighters = JSON.parse(event.data.slice(9));
+		  document.getElementById("users").innerHTML = JSON.stringify(fighters, null, 4);
+	  }
+	});
+  
+	socket.addEventListener('close', () => {
+	  console.log('Desconectado do servidor WebSocket');
+	});
+  </script>
+  
