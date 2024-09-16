@@ -1276,7 +1276,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 		}
 
 		connectWebSocket(player1){
-			pvpWebSocket = new WebSocket('ws://localhost:7830');
+			pvpWebSocket = new WebSocket('wss://pvp.magiesugary.site');
 
 			pvpWebSocket.addEventListener('open', () => {
 				console.log('Starting pvp with ' + this.currentEnemy);

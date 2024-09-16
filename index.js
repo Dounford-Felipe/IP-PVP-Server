@@ -559,7 +559,7 @@ function tick(fightId) {
 			return
 		}
 		[fights[fightId].player1,fights[fightId].player2].forEach((player) => {
-			/* if (fights[fightId][player].hp <= 0) {
+			if (fights[fightId][player].hp <= 0) {
 				if (fights[fightId][player].extraLife) {
 					fights[fightId][player].hp = fights[fightId][player].afterDeathHP;
 					fights[fightId][player].extraLife -= 1;
@@ -569,7 +569,7 @@ function tick(fightId) {
 					fights[fightId].ended = true;
 					endFight(fightId,player);
 				}
-			}; */
+			};
 			if (fights[fightId].config.coldDay) {
 				const coldDamage = 5 - fights[fightId][player].coldProtection;
 				if (coldDamage === 0) return
@@ -608,7 +608,7 @@ async function looting(fightId, winner, loser) {
 	try {
 		fighters[winner].ws.send('FightResult=Winner');
 
-		/* const user = await turso.execute('SELECT * FROM players WHERE name = ?', [winner]);
+		const user = await turso.execute('SELECT * FROM players WHERE name = ?', [winner]);
 		const titles = JSON.parse(user.rows[0].titles);
 		const wins = user.rows[0].wins
 		//websocket to update coins
@@ -635,7 +635,7 @@ async function looting(fightId, winner, loser) {
 			unlockTitle(winner, 'legend', user);
 		} else if (wins == 149) {
 			unlockTitle(winner, 'immortal', user);
-		} */
+		}
 	} catch (error) {
 		console.log(error.message, "looting", fightId, winner, loser)
 	}
