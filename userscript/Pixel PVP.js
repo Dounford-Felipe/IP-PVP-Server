@@ -335,7 +335,6 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 					pets[pet].xp = Json[pet];
 					pets[pet].level = Json[pet] > 24 ? 3 : Json[pet] > 9 ? 2 : 1;
 				}
-				console.log(pets)
 			} catch (error) {
 				console.error(error.message);
 			}
@@ -1171,8 +1170,16 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			if (result == "Winner") {
 				PixelShopPlus.coinIncrease("Moon Coins",1)
 				resultText.innerHTML = `You won against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, you did great!`
-			} else {
+				if (currentPet !== "none") {
+					pets[currentPet].xp += 1
+					if (pets[currentPet].xp == 10 || pets[currentPet].xp == 25) {
+						pets[currentPet].level += 1
+					}
+				}
+			} else if (result == "Loser") {
 				resultText.innerHTML = `You lost against <b style="text-transform: capitalize">${IdlePixelPlus.plugins.pvp.currentEnemy}</b>, better luck next time!`
+			} else {
+				resultText.innerHTML = `The battle ended in a tie!`
 			}
 			switch_panels('panel-dounfordPVP')
 			document.getElementById("dpvpResult").showModal();
@@ -1272,7 +1279,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			pvpWebSocket = new WebSocket('ws://localhost:7830');
 
 			pvpWebSocket.addEventListener('open', () => {
-				console.log('Connected to PVP server');
+				console.log('Starting pvp with ' + this.currentEnemy);
 				pvpWebSocket.send('User=' + username + '~' + this.currentEnemy);
 				if (player1) {
 					pvpWebSocket.send('Config=' + JSON.stringify(this.options));
@@ -1309,7 +1316,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			});
 			
 			pvpWebSocket.addEventListener('close', () => {
-				console.log('PVP Fight ended');
+				console.log('PVP with ' + this.currentEnemy + ' ended');
 				clearInterval(this.fight.tick);
 				setTimeout(() => {
 					delete this.fightHitplat[this.currentEnemy]
@@ -1318,6 +1325,8 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 
 				this.fight = {};
 				this.fighting = false;
+				document.getElementById("combat-rain").style.display = "none";
+				document.getElementById("combat-tar-rain").style.display = "none";
 				document.getElementById("notification-dpvp-combat").style.display = "none";
 			});
 		}
@@ -1381,8 +1390,8 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 					}
 					this.updateStatsBars();
 					break;
-				case "RefreshEnemy":
-					this.refreshEnemy(value_array[0],value_array[1]);
+				case "RefreshPlayer":
+					this.refreshPlayer(value_array[0],value_array[1],value_array[2]);
 					break;
 				case "FightResult":
 					let result = [this.currentEnemy,value,get_utc_time()]
@@ -1401,7 +1410,20 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			}
 		}
 
+		fightCooldown(value) {
+			if (value > 0) {
+				document.getElementById("dpvp-fighting-countdown").style.display = "";
+				document.getElementById("dpvp-fighting-countdown").innerText = "FIGHT IN " + value;
+				setTimeout(() => {
+					this.fightCooldown(value - 1);
+				}, 1000);
+			} else {
+				document.getElementById("dpvp-fighting-countdown").style.display = "none";
+			}
+		}
+
 		startPVP() {
+			this.fightCooldown(3);
 			this.refreshPresetIcons();
 			document.getElementById("dpvp-fighting-hero-label").innerText = username
 			document.getElementById("dpvp-fighting-hero-title").innerText = displayTitles[currentTitle]
@@ -1440,11 +1462,11 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			}
 		}
 
-		refreshEnemy(attribute, value) {
+		refreshPlayer(attribute, value, name) {
 			if (intStats.includes(attribute)) {
 				value = parseInt(value);
 			}
-			this.fight[this.currentEnemy][attribute] = value;
+			this.fight[name][attribute] = value;
 			this.updateStatsBars();
 		}
 
@@ -1597,8 +1619,8 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			this.enemyContext.drawImage(Cache.getImage("images/hero_legs_" + this.fight[this.currentEnemy].legs + ".png","enemy_dpvp_legs"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_boots_" + this.fight[this.currentEnemy].boots + ".png","enemy_dpvp_boots"), 0, 300);
 			this.enemyContext.drawImage(Cache.getImage("images/hero_amulet_" + this.fight[this.currentEnemy].amulet + ".png","enemy_dpvp_amulet"), 0, 300);
-			this.enemyContext.drawImage(Cache.getImage("images/hero_shield_" + this.fight[this.currentEnemy].shield + ".png","enemy_dpvp_shield"), -60, 300);
-			this.enemyContext.drawImage(Cache.getImage("images/hero_weapon_" + this.fight[this.currentEnemy].weapon + ".png","enemy_dpvp_weapon"), 45, 300);
+			this.enemyContext.drawImage(Cache.getImage("images/hero_shield_" + this.fight[this.currentEnemy].shield + ".png","enemy_dpvp_shield"), 0, 300);
+			this.enemyContext.drawImage(Cache.getImage("images/hero_weapon_" + this.fight[this.currentEnemy].weapon + ".png","enemy_dpvp_weapon"), 0, 300);
 			this.enemyContext.restore()
 		}
 

@@ -18,6 +18,7 @@ const spellCooldowns = {
 	pet: 15
 }
 const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBonus","maxHp","maxMana","hp","mana"];
+const armorSlots = ['head','body','legs','gloves','boots'];
 
 const turso = createClient({
 	url: process.env.TURSO_DATABASE_URL,
@@ -236,7 +237,10 @@ async function handleMessage(ws, message) {
 				value_array[1] = parseInt(value_array[1]);
 			}
 			fights[ws.channelId][ws.username][value_array[0]] = value_array[1];
-			ws.publish(ws.channelId,"RefreshEnemy=" + value_array[0] + "~" + value_array[1])
+			server.publish(ws.channelId,"RefreshPlayer=" + value_array[0] + "~" + value_array[1] + "~" + ws.username);
+			if (armorSlots.includes(value_array[0])) {
+				checkCold(ws.channelId,ws.username);
+			}
 			break;
 		case "Cast":
 			castSpell(ws.channelId,ws.username,ws.enemyUsername,value);
@@ -423,7 +427,7 @@ function poison(fightId,receiver) {
 function checkCold(fightId, checkedPlayer) {
 	let cold = 0;
 	const player = fights[fightId][checkedPlayer];
-	['head','body','legs','gloves','boots'].forEach(slot => {
+	armorSlots.forEach(slot => {
 		if (player[slot].includes("frozen") || player[slot].includes("bear")) {
 			cold += 1
 		}
@@ -435,17 +439,18 @@ function checkCold(fightId, checkedPlayer) {
 function startFight(fightId,player1,player2) {
 	server.publish(fightId,"Fight=" + JSON.stringify(fights[fightId]))
 	setTimeout(()=>{
+		fights[fightId].tick = setInterval(function() {
+			tick(fightId)
+		}, 1000)
 		attack(fightId,player1,player2)
 		attack(fightId,player2,player1)
 	},3000)
 	
-	fights[fightId].tick = setInterval(function() {
-		tick(fightId)
-	}, 1000)
 	if (fights[fightId].config.itRains || fights[fightId].config.mudRain) {
 		setTimeout(()=>{toggleRain(fightId)},10000)
 	}
 }
+
 //Hit function
 function hitRate(fightId,defence,accuracy) {
 	if (accuracy == -1) {return false};
@@ -498,7 +503,7 @@ function attack(fightId,attacker,receiver){
 								server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + attacker)
 							} else {
 								fights[fightId][receiver].hp -= damageDone;
-								server.publish(fightId,"HitSplat=" + damageDone + "~images/reflect_spell.png~white~rgba(255,0,0,0.6)~blue~" + receiver)
+								server.publish(fightId,"HitSplat=" + damageDone + "~images/" + fights[fightId][attacker].weapon + ".png~white~rgba(255,0,0,0.6)~blue~" + receiver)
 							}
 						};
 					} else {
@@ -567,8 +572,9 @@ function tick(fightId) {
 			}; */
 			if (fights[fightId].config.coldDay) {
 				const coldDamage = 5 - fights[fightId][player].coldProtection;
+				if (coldDamage === 0) return
 				fights[fightId][player].hp -= coldDamage
-				server.publish(fightId,"HitSplat=" + coldDamage + "~images/snowflake_sigil.png~cyan~rgba(255,0,0,0.4)~blue~0" + player)
+				server.publish(fightId,"HitSplat=" + coldDamage + "~images/snowflake_sigil.png~cyan~rgba(255,0,0,0.4)~blue~" + player)
 			}
 			if (fights[fightId].isRaining) {
 				if (fights[fightId].config.mudRain && fights[fightId].time % 5 == 4) {
@@ -580,8 +586,9 @@ function tick(fightId) {
 						server.publish(fightId,"HitSplat=MISSED~images/ghost_icon.png~white~rgba(255,0,0,0.6)~blue~" + player)
 					}
 				} else {
-					if (fights[fightId][player].amulet == 'rain_amulet') {
-						fights[fightId][player].hp += 1
+					if (fights[fightId][player].amulet == 'amulet_of_healing_rain') {
+						fights[fightId][player].hp += 3
+						fights[fightId][player].hp = Math.min(fights[fightId][player].hp,fights[fightId][player].maxHp);
 						server.publish(fightId,"HitSplat=1~images/heal_spell.png~lime~rgba(0,255,0,0.4)~blue~" + player)
 						updateStats(fightId)
 					}
@@ -589,6 +596,11 @@ function tick(fightId) {
 			}
 		})
 		fights[fightId].time++
+		if (fights[fightId].time > 600) {
+			server.publish(fightId,"FightResult=Draw")
+			fights[fightId].ended = true;
+			fighters[fights[fightId].player1].ws.close()
+		}
 	}
 }
 
