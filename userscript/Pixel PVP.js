@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Pixel PVP Plus
-// @version      1.0.0
+// @version      1.0.1
 // @description  PVP plugin for IdlePixel
 // @author       Dounford
 // @license      MIT
@@ -197,11 +197,6 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 		async onLogin() {
 			username = IdlePixelPlus.getVar("username");
 			userToken = localStorage.getItem("dPVP-" + username + "Token") || "";
-			const users = localStorage.getItem('PVP-BlockedUsers');
-			if (users) {
-				this.blockedUsers = JSON.parse(users)
-				this.blockedUsers.forEach((user) => {this.blockPlayer(user)})
-			}
 			const petStorage = localStorage.getItem("dPVP-" + username + "pets");
 			if (petStorage) {
 				pets = JSON.parse(petStorage);
@@ -211,6 +206,12 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			await this.getData()
 	
 			this.shopInit();
+
+			const users = localStorage.getItem('PVP-BlockedUsers');
+			if (users) {
+				this.blockedUsers = JSON.parse(users)
+				this.blockedUsers.forEach((user) => {this.blockPlayer(user)})
+			}
 
 			for (let pet in pets) {
 				document.getElementById("dpvpPetName" + pet).innerHTML = pets[pet].name;
