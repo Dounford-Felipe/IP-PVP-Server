@@ -232,6 +232,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 				});
 			}
 			IdlePixelPlus.plugins.pvp.changeaddFriendFunction()
+			this.connectWebSocket();
 		}
 
 		onConfigsChanged() {
@@ -252,7 +253,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			if(content.startsWith("pvpAccept:")) {
 				if (this.fighting == false && this.currentEnemy == player) {
 					this.fighting = true;
-					this.connectWebSocket()
+					this.startFight()
 				}
 			}
         }
@@ -618,10 +619,12 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			
 			//PVP Tab
 			const pvpPanel = `<div style="text-align:center;">
-				<button onclick="document.getElementById('sendPVPModal').showModal()" class="background-primary">
+				<button onclick="document.getElementById('sendPVPModal').showModal()" class="btn btn-success">
 					<span class="font-pixel font-large hover">Fight</span>
+				</button><button onclick="document.getElementById('pvpLobbyModal').showModal()" class="btn btn-info" style="margin-left: 10px;margin-right: 6px;">
+					<span class="font-pixel font-large hover">LOBBY</span>
 				</button>
-				<button onclick="document.getElementById('blockListModal').showModal()">
+				<button onclick="document.getElementById('blockListModal').showModal()" class="btn btn-danger">
 					<span class="font-pixel font-large hover">Block List</span>
 				</button>
 			</div>
@@ -799,6 +802,17 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 				</div>
 				</div>`,
 			['pvpPetName'])
+
+			//Lobby Modal
+			const pvpLobbyModal = `<dialog class="dounfordModal" id="pvpLobbyModal" onclick="event.target==this && this.close()" style="width: 900px;">
+				<div class="dounfordModalHeader">
+					<h5 class="modal-title text-secondary">Lobby</h5>
+					<button type="button" class="btn-close" onclick="this.parentNode.parentNode.close()"></button>
+				</div>
+				<div id="pvpLobbyBody" class="dounfordModalBody" style="display: grid;grid-template-columns: 32% 32% 32%;height: 500px;overflow-y: auto;font-size: 1.5rem;grid-auto-rows: 100px;overflow-x: hidden;justify-content: space-between;row-gap: 15px;">
+				</div>
+			</dialog>`
+			document.getElementById('content').insertAdjacentHTML('beforeend', pvpLobbyModal);
 
 
 			//Send PVP Request Modal
@@ -1127,6 +1141,24 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			});
 		}
 
+		addLobbyPlayer(player) {
+			if (document.getElementById("pvpLobbyPlayer-" + player)) {return;}
+			let playerBtn = document.createElement("button");
+			playerBtn.id = "pvpLobbyPlayer-" + player;
+			playerBtn.classList.add("background-primary", "rounded");
+			playerBtn.innerText = player;
+			playerBtn.addEventListener("click", () => {
+				IdlePixelPlus.plugins.pvp.openRequest(player);
+			});
+			document.getElementById("pvpLobbyBody").append(playerBtn);
+		}
+
+		openRequest(enemy) {
+			document.getElementById('pvpLobbyModal').close();
+			document.getElementById('sendFightName').value = enemy;
+			document.getElementById('sendPVPModal').showModal();
+		}
+
 		openPetModal(pet) {
 			document.getElementById('pvpPetName').value = pet
 			document.getElementById('pvpPetDisplayName').innerText = pets[pet].name
@@ -1273,43 +1305,14 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
                 content: 'pvpAccept:' + username,
             });
 			this.fighting = true;
-			this.connectWebSocket(true);
+			this.startFight(true);
 		}
 
-		connectWebSocket(player1){
+		connectWebSocket(){
 			pvpWebSocket = new WebSocket('wss://pvp.magiesugary.site');
 
 			pvpWebSocket.addEventListener('open', () => {
-				console.log('Starting pvp with ' + this.currentEnemy);
-				pvpWebSocket.send('User=' + username + '~' + this.currentEnemy);
-				if (player1) {
-					pvpWebSocket.send('Config=' + JSON.stringify(this.options));
-				}
-				const pvpStats = {
-					title: currentTitle,
-					pet: currentPet,
-					petLevel: pets[currentPet]?.level || 0,
-					hp: parseInt(var_max_hp),
-					maxHp: parseInt(var_max_hp),
-					mana: parseInt(var_max_mana),
-					maxMana: parseInt(var_max_mana),
-					accuracy: parseInt(var_accuracy),
-					damage: parseInt(var_melee_damage),
-					arrowDamage: parseInt(var_arrow_damage),
-					speed: parseInt(var_speed),
-					defence: parseInt(var_defence),
-					magicBonus: parseInt(var_magic_bonus),
-					head: var_head,
-					body: var_body,
-					legs: var_legs,
-					boots: var_boots,
-					gloves: var_gloves,
-					amulet: var_amulet,
-					shield: var_shield,
-					weapon: var_weapon,
-					arrows: var_arrows,
-				}
-				pvpWebSocket.send('SetPlayer=' + JSON.stringify(pvpStats));
+				pvpWebSocket.send("Login=" + username)
 			});
 			
 			pvpWebSocket.addEventListener('message', (event) => {
@@ -1317,19 +1320,57 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			});
 			
 			pvpWebSocket.addEventListener('close', () => {
-				console.log('PVP with ' + this.currentEnemy + ' ended');
-				clearInterval(this.fight.tick);
-				setTimeout(() => {
-					delete this.fightHitplat[this.currentEnemy]
-					this.currentEnemy = null;
-				}, 2000)
-
-				this.fight = {};
-				this.fighting = false;
-				document.getElementById("combat-rain").style.display = "none";
-				document.getElementById("combat-tar-rain").style.display = "none";
-				document.getElementById("notification-dpvp-combat").style.display = "none";
+				console.log("Connection with the pvp server lost")
 			});
+		}
+
+		startFight(player1) {
+			document.getElementById('pvpLobbyModal').close();
+
+			console.log('Starting pvp with ' + this.currentEnemy);
+			pvpWebSocket.send('Fight=' + this.currentEnemy);
+			if (player1) {
+				pvpWebSocket.send('Config=' + JSON.stringify(this.options));
+			}
+			const pvpStats = {
+				title: currentTitle,
+				pet: currentPet,
+				petLevel: pets[currentPet]?.level || 0,
+				hp: parseInt(var_max_hp),
+				maxHp: parseInt(var_max_hp),
+				mana: parseInt(var_max_mana),
+				maxMana: parseInt(var_max_mana),
+				accuracy: parseInt(var_accuracy),
+				damage: parseInt(var_melee_damage),
+				arrowDamage: parseInt(var_arrow_damage),
+				speed: parseInt(var_speed),
+				defence: parseInt(var_defence),
+				magicBonus: parseInt(var_magic_bonus),
+				head: var_head,
+				body: var_body,
+				legs: var_legs,
+				boots: var_boots,
+				gloves: var_gloves,
+				amulet: var_amulet,
+				shield: var_shield,
+				weapon: var_weapon,
+				arrows: var_arrows,
+			}
+			pvpWebSocket.send('SetPlayer=' + JSON.stringify(pvpStats));
+		}
+
+		endFight(){
+			console.log('PVP with ' + this.currentEnemy + ' ended');
+			clearInterval(IdlePixelPlus.plugins.pvp.fight.tick);
+			setTimeout(() => {
+				delete IdlePixelPlus.plugins.pvp.fightHitplat[IdlePixelPlus.plugins.pvp.currentEnemy]
+				IdlePixelPlus.plugins.pvp.currentEnemy = null;
+				IdlePixelPlus.plugins.pvp.fight = {};
+				IdlePixelPlus.plugins.pvp.fighting = false;
+			}, 2000)
+			document.getElementById("combat-rain").style.display = "none";
+			document.getElementById("combat-tar-rain").style.display = "none";
+			document.getElementById("notification-dpvp-combat").style.display = "none";
 		}
 
 		handleMessage(message) {
@@ -1346,6 +1387,18 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 			}
 
 			switch (key) {
+				case "Lobby":
+					const lobby = JSON.parse(value);
+					lobby.forEach((player) => {
+						IdlePixelPlus.plugins.pvp.addLobbyPlayer(player);
+					})
+					break;
+				case "Join":
+					this.addLobbyPlayer(value);
+					break;
+				case "Leave":
+					document.getElementById("pvpLobbyPlayer-" + value).remove();
+					break;
 				case "UserToken":
 					userToken = value;
 					localStorage.setItem("dPVP-" + username + "Token", userToken);
@@ -1399,6 +1452,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 					fightHistory.push(result);
 					localStorage.setItem("dPVP-" + username + "fightHistory", JSON.stringify(fightHistory));
 					this.addFightHistory(result);
+					this.endFight();
 					this.fightResult(value);
 					break;
 				case "NewTitle":
@@ -1543,6 +1597,7 @@ const intStats = ["damage", "arrowDamage","speed","defence", "accuracy","magicBo
 
 		//Evething that should be called each second
 		tick() {
+			if(this.fighting == false) return;
 			//Hero Stats
 			document.getElementById("dpvp_combat_hero_accuracy").innerText = this.fight[username].accuracy + this.fight[username].bonusAccuracy;
 			document.getElementById("dpvp_combat_hero_melee_damage").innerText = this.fight[username].damage + this.fight[username].bonusDamage;

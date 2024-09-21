@@ -1,5 +1,4 @@
 import { createClient } from "@libsql/client";
-import { serve } from "bun";
 const ranged = ['wooden_bow','long_bow','haunted_bow','balista'];
 let fighters = {};
 let fights = {}
@@ -47,13 +46,21 @@ const server = Bun.serve({
 		},
 		close(ws) {
 			if (ws.isDebug) return;
-			clearInterval(fights[ws.channelId].tick);
-			ws.unsubscribe(ws.channelId);
-			delete fighters[ws.username];
-			if (fighters[ws.enemyUsername]) {
-				fighters[ws.enemyUsername].ws.close();
-			} else {
+			ws.publish("Lobby","Leave=" + ws.username)
+			if (fighters[ws.username]) {
+				ws.unsubscribe("Lobby");
+				delete fighters[ws.username];
+			}
+			if (fights[ws.channelId]) {
+				clearInterval(fights[ws.channelId].tick);
+				ws.unsubscribe(ws.channelId);
 				delete fights[ws.channelId];
+				if (fighters[ws.enemyUsername]) {
+					delete fighters[ws.enemyUsername].ws.enemyUsername
+					delete fighters[ws.enemyUsername].ws.channelId
+					delete fighters[ws.enemyUsername].channel
+					fighters[ws.enemyUsername].ws.publish("Lobby","Join=" + ws.enemyUsername)
+				}
 			}
 			console.log('Client disconnected');
 		}
@@ -74,38 +81,44 @@ async function handleMessage(ws, message) {
 	}
 
 	switch (key) {
-		case "User":
-			const [user, enemy] = value_array.map(str => str.trim());
-			const channelId = [user, enemy].sort().join('-'); 
+		case "Login":
+			const user = value.trim()
 
-			if(fighters[user]) {ws.close(); return;}
-
-			const ban = await import('./ban.json');
-
-			if (ban.users.includes(user)) {
-				ws.close();
-				if(fights[channelId]) {fighters[enemy].ws.close();};
-				return;
-			}
-
-			fighters[user] = {
-				channel:channelId,
-				ws:ws
-			};
+			//This is imported here and not at the top so we can update without rebooting the server
+			const banFile = await Bun.file('./ban.txt').text();
+			let ban = JSON.parse(banFile) 
+			
+			if(fighters[user] || ban.includes(user)) {ws.close(); return;}
 
 			ws.username = user;
-			ws.enemyUsername = enemy;
-			ws.channelId = channelId;
+			fighters[user] = {
+				ws:ws
+			}
 
 			const userToken = getToken(user);
 			ws.send('UserToken=' + userToken);
 
+			ws.subscribe("Lobby")
+			const lobby = Object.keys(fighters).filter((player)=>{return user !== player})
+			ws.send("Lobby=" + JSON.stringify(lobby));
+			ws.publish("Lobby","Join=" + user)
+			break;
+		case "Fight":
+			const enemy = value;
+			const channelId = [ws.username, enemy].sort().join('-'); 
+
+			fighters[ws.username].channel = channelId;
+
+			ws.enemyUsername = enemy;
+			ws.channelId = channelId;
+
 			ws.subscribe(channelId);
+			ws.publish("Lobby","Leave=" + ws.username)
 
 			if (!fights[channelId]) {
 				fights[channelId] = {
-					[user]: {
-						username: user,
+					[ws.username]: {
+						username: ws.username,
 						enemyUsername: enemy,
 						coldProtection: 0,
 						bonusSpeed: 0,
@@ -133,7 +146,7 @@ async function handleMessage(ws, message) {
 					},
 					[enemy]: {
 						username: enemy,
-						enemyUsername: user,
+						enemyUsername: ws.username,
 						coldProtection: 0,
 						bonusSpeed: 0,
 						bonusAccuracy: 0,
@@ -158,7 +171,7 @@ async function handleMessage(ws, message) {
 							pet: 0,
 						}
 					},
-					player1: user,
+					player1: ws.username,
 					player2: enemy,
 					isRaining: false,
 					rainCooldown: 0,
@@ -247,6 +260,19 @@ async function handleMessage(ws, message) {
 			break;
 		case "Cast":
 			castSpell(ws.channelId,ws.username,ws.enemyUsername,value);
+			break;
+		case "Ban":
+			const [bannedUser, key] = value_array
+			if(key == process.env.BAN_KEY && ws.isDebug) {
+				const banFile = await Bun.file('./ban.txt').text();
+				let ban = JSON.parse(banFile)
+
+				ban.push(bannedUser)
+
+				await Bun.write("./ban.txt", JSON.stringify(ban));
+				console.log(bannedUser + " was banned")
+				ws.send(bannedUser + " was banned")
+			}
 			break;
 		case "Debug":
 			ws.isDebug = true;
@@ -647,10 +673,26 @@ async function looting(fightId, winner, loser) {
 async function endFight(fightId, loser) {
 	const winner = fights[fightId][loser].enemyUsername
 	
-	await looting(fightId, winner, loser)
-	fighters[loser].ws.send('FightResult=Loser');
+	await looting(fightId, winner, loser); //Give coins and xp
 
-	fighters[winner].ws.close();
+	fighters[loser].ws.send('FightResult=Loser'); //This is what makes the fight end for the user
+
+	//With this users will appear in the lobby
+	fighters[winner].ws.publish("Lobby","Join=" + winner)
+	fighters[loser].ws.publish("Lobby","Join=" + loser)
+
+	clearInterval(fights[fightId].tick); //Stop fight logic
+	fighters[loser].ws.unsubscribe(fightId); //Make sure player will not get any more messages
+	fighters[winner].ws.unsubscribe(fightId);
+	delete fights[fightId]; //Remove fight from memory
+
+	//Clean enemy and channel from players
+	delete fighters[loser].ws.enemyUsername 
+	delete fighters[loser].ws.channelId
+	delete fighters[loser].channel
+	delete fighters[winner].ws.enemyUsername
+	delete fighters[winner].ws.channelId
+	delete fighters[winner].channel
 }
 
 async function unlockTitle(player, title, json) {
