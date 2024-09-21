@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Pixel PVP Plus
-// @version      1.0.1
+// @version      1.1.0
 // @description  PVP plugin for IdlePixel
 // @author       Dounford
 // @license      MIT
